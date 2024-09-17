@@ -1,0 +1,135 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: white;
+}
+
+.main-container {
+    background-color: #2d4d4a;
+    padding: 40px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 800px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+
+.scrollable-container {
+    max-height: 400px;  /* Adjust the height as necessary */
+    overflow-y: auto;
+    margin-top: 20px;
+}
+
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+}
+
+.header-icon {
+    background-color: #2d4d4a;
+    border-radius: 50%;
+    padding: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.header-icon svg {
+    fill: #fff;
+    width: 40px;
+    height: 40px;
+}
+
+h1 {
+    font-weight: normal;
+    font-size: 36px;
+}
+
+.logout-button {
+    background-color: #218c74;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.logout-button:hover {
+    background-color: #c51550;
+}
+
+.upload-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+}
+
+.upload-input {
+    background-color: #ffffff;
+    border-radius: 5px;
+    padding: 10px;
+    color: #333;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.upload-button, .my-videos-button {
+    background-color: #218c74;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-left: 10px;
+}
+
+.upload-button:hover, .my-videos-button:hover {
+    background-color: #1e665b;
+}
+
+#uploadMessage {
+    margin: 20px 0;
+    font-size: 18px;
+}
+
+#videoList {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+#videoList li {
+    margin: 20px 0;
+}
+
+
+.progress-bar-container {
+    width: 100%;
+    background-color: #f3f3f3;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+
+.progress-bar {
+    width: 0;
+    height: 20px;
+    background-color: #218c74;
+    border-radius: 5px;
+    text-align: center;
+    line-height: 20px;
+    color: white;
+}
