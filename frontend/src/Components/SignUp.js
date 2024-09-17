@@ -34,7 +34,7 @@ const SignUp = () => {
       .then((data) => {
         console.log('Success:', data);
         // Redirect after successful sign-up
-        window.location.href = '/confirm';
+        navigate('/confirm');
       })
       .catch((error) => {
         console.error('Error:', error);

@@ -2,39 +2,40 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import '../styles/signup.css';
 
-const SignUp = () => {
+const Confirm = () => {
 
   const [confirmCode, setConfirmCode] = useState('');
   const navigate = useNavigate(); 
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    navigate('/login');
+    // e.preventDefault();
   
-    const data = {
-      confirmCode
-    };
+    // const data = {
+    //   confirmCode
+    // };
   
-    fetch('http://localhost:3001/api/signup', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        console.log('Success:', data);
-        // Redirect after successful sign-up
-        window.location.href = '/confirm';
-      })
-      .catch((error) => {
-        console.error('Error:', error);
-      });
+    // fetch('http://localhost:3001/api/signup', {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json'
+    //   },
+    //   body: JSON.stringify(data)
+    // })
+    //   .then((response) => {
+    //     if (!response.ok) {
+    //       throw new Error(`HTTP error! status: ${response.status}`);
+    //     }
+    //     return response.json();
+    //   })
+    //   .then((data) => {
+    //     console.log('Success:', data);
+    //     // Redirect after successful sign-up
+    //     window.location.href = '/confirm';
+    //   })
+    //   .catch((error) => {
+    //     console.error('Error:', error);
+    //   });
   };
   return (
     <div className="signup-container">
@@ -60,10 +61,10 @@ const SignUp = () => {
             required
           />
         </div>
-        <input type="submit" value="Sign Up" className="signup-button" />
+        <input type="submit" value="Confirm" className="signup-button" />
       </form>
     </div>
   );
 };
 
-export default SignUp;
+export default Confirm;
