@@ -2,6 +2,8 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'lite-youtube-embed/src/lite-yt-embed.css';
 import 'lite-youtube-embed';
+// import '../styles/uploadForm.css'
+
 
 if (typeof window !== 'undefined') {
     import('lite-youtube-embed');
@@ -123,9 +125,9 @@ const UploadForm = () => {
     }, []);
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
-            <nav style={{ backgroundColor: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' }}>
-                <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 1rem', display: 'flex', justifyContent: 'space-between', height: '64px', alignItems: 'center' }}>
+        <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6', width: '100%', padding: '0 2rem' }}>
+            <nav style={{ backgroundColor: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)', width: '100%' }}>
+                <div style={{ margin: '0 auto', padding: '0 1rem', display: 'flex', justifyContent: 'space-between', height: '64px', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                         <VideoIcon />
                         <span style={{ marginLeft: '0.5rem', fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>Jerry Video Transcode</span>
@@ -143,7 +145,7 @@ const UploadForm = () => {
                 </div>
             </nav>
 
-            <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '1.5rem' }}>
+            <main style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '1280px', margin: '2rem auto' }}>
                 <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827', marginBottom: '1.5rem' }}>Upload Your Video</h1>
                 
                 <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', padding: '1.5rem', marginBottom: '2rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' }}>
@@ -198,9 +200,9 @@ const UploadForm = () => {
                 </div>
 
                 {relatedVideos.length > 0 && (
-                    <div style={{ marginTop: '2rem' }}>
+                    <div style={{ width: '100%', marginTop: '2rem' }}>
                         <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem', textAlign: 'center' }}>Related YouTube Videos</h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
                             {relatedVideos.map(video => (
                                 <div key={video.videoId} style={{ backgroundColor: 'white', borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' }}>
                                     <lite-youtube 
