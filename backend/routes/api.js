@@ -106,14 +106,12 @@ const saltRounds = 10; // Salt rounds for hashing passwords
 router.post("/signup", (req, res) => {
   const { username, email, password } = req.body;
 
-  console.log(username, email, password);
-
   if (!username || !email || !password) {
     return res.status(400).json({ success: false, message: "All fields are required." });
   }
 
   // Check if user already exists in the database
-  req.db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
+  req.db.get("SELECT * FROM users WHERE username = ? OR email = ?", [username, email], (err, row) => {
     if (err) {
       return res.status(500).json({ success: false, message: "Database error: " + err.message });
     }
@@ -240,7 +238,5 @@ router.get('/download/:id', auth.authenticateToken, (req, res) => {
        }
    });
 });
-
-
 
 module.exports = router;
