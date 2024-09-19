@@ -10,7 +10,7 @@ const fs = require('fs');
 const { searchYouTube } = require("../functions/googleAPI.js");
 const CP = require("node:child_process");
 const AWS = require('aws-sdk');
-const { s3Client } = require('./config');
+const { s3Client } = require('../public/config.js');
 const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
