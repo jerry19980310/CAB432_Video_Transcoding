@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const UploadForm = () => {
     const [file, setFile] = useState(null);
     const [uploadMessage, setUploadMessage] = useState('');
     const [relatedVideos, setRelatedVideos] = useState([]);
+    const navigate = useNavigate();
 
     const handleFileChange = (event) => {
         setFile(event.target.files[0]);
@@ -40,6 +42,13 @@ const UploadForm = () => {
             });
     };
 
+    const handleLogout = () => {
+        // Clear the authentication token
+        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        // Redirect to login page
+        navigate('/login');
+    };
+
     return (
         <div className="main-container">
             <div className="header">
@@ -49,13 +58,13 @@ const UploadForm = () => {
                     </svg>
                 </div>
                 <h1>Jerry Video Transcode</h1>
-                <a href="/logout" className="logout-button">Logout</a>
+                <button onClick={handleLogout} className="logout-button">Logout</button>
             </div>
 
             <form onSubmit={handleSubmit} className="upload-section">
                 <input type="file" name="uploadFile" className="upload-input" onChange={handleFileChange} />
                 <input type="submit" value="Upload" className="upload-button" />
-                <button type="button" className="my-videos-button" onClick={() => window.location.href = '/videolist'}>My Videos</button>
+                <button type="button" className="my-videos-button" onClick={() => navigate('/videolist')}>My Videos</button>
             </form>
 
             <h2>{uploadMessage}</h2>
