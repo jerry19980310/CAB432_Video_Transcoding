@@ -11,3 +11,9 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+
+.env
+videoDatabase
+temp/
+uploads/
