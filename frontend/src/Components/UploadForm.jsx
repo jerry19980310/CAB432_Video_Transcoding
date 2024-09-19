@@ -1,17 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import 'lite-youtube-embed/src/lite-yt-embed.css';
+import 'lite-youtube-embed';
+
+if (typeof window !== 'undefined') {
+    import('lite-youtube-embed');
+}
+
+const iconStyle = {
+  marginRight: '8px',
+  width: '16px',
+  height: '16px',
+};
+
+const VideoIcon = () => (
+  <svg style={{ width: '32px', height: '32px', color: '#4f46e5' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="23 7 16 12 23 17 23 7" />
+    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+  </svg>
+);
+
+const LogoutIcon = () => (
+  <svg style={iconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
+const FilmIcon = () => (
+  <svg style={iconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+    <line x1="7" y1="2" x2="7" y2="22" />
+    <line x1="17" y1="2" x2="17" y2="22" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+    <line x1="2" y1="7" x2="7" y2="7" />
+    <line x1="2" y1="17" x2="7" y2="17" />
+    <line x1="17" y1="17" x2="22" y2="17" />
+    <line x1="17" y1="7" x2="22" y2="7" />
+  </svg>
+);
+
+const UploadIcon = () => (
+  <svg style={iconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="17 8 12 3 7 8" />
+    <line x1="12" y1="3" x2="12" y2="15" />
+  </svg>
+);
 
 const UploadForm = () => {
     const [file, setFile] = useState(null);
     const [uploadMessage, setUploadMessage] = useState('');
     const [relatedVideos, setRelatedVideos] = useState([]);
     const navigate = useNavigate();
+    const [videos, setVideos] = useState([
+        { id: 1, fileName: 'My Vacation Video.mp4', fileSize: '250 MB', uploadTime: '09-30-2024' },
+        { id: 2, fileName: 'Birthday Party.mov', fileSize: '500 MB', uploadTime: '09-29-2024' },
+        { id: 3, fileName: 'Project Presentation.avi', fileSize: '100 MB', uploadTime: '09-28-2024' },
+    ]);
 
-    const handleFileChange = (event) => {
-        setFile(event.target.files[0]);
-    };
+    const handleFileChange = useCallback((event) => {
+        const selectedFile = event.target.files[0];
+        if (selectedFile) {
+            setFile(selectedFile);
+        }
+    }, []);
 
-    const handleSubmit = (event) => {
+    const handleSubmit = useCallback((event) => {
         event.preventDefault();
 
         if (!file) {
@@ -22,14 +78,28 @@ const UploadForm = () => {
         const formData = new FormData();
         formData.append('uploadFile', file);
 
+        setUploadMessage('Uploading...');
+
         fetch('/upload', {
             method: 'POST',
             body: formData,
+            credentials: 'include', 
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.message && data.fileName) {
                     setUploadMessage(`${data.fileName} uploaded successfully!`);
+                    setVideos(prevVideos => [...prevVideos, {
+                        id: prevVideos.length + 1,
+                        fileName: data.fileName,
+                        fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+                        uploadTime: new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+                    }]);
                 }
 
                 if (data.relatedVideos) {
@@ -38,56 +108,114 @@ const UploadForm = () => {
             })
             .catch(error => {
                 console.error('Error:', error);
-                setUploadMessage('Error uploading file.');
+                setUploadMessage('Error uploading file. Please try again.');
             });
-    };
+    }, [file, setVideos]);
 
-    const handleLogout = () => {
-        // Clear the authentication token
+    const handleLogout = useCallback(() => {
         document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        // Redirect to login page
         navigate('/login');
-    };
+    }, [navigate]);
+
+    const handleViewVideo = useCallback((fileName) => {
+        console.log(`View video: ${fileName}`);
+        // Implement view functionality here
+    }, []);
 
     return (
-        <div className="main-container">
-            <div className="header">
-                <div className="header-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" fill="white">
-                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zM10 17.5v-11l8.5 5.5-8.5 5.5z" />
-                    </svg>
+        <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
+            <nav style={{ backgroundColor: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' }}>
+                <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 1rem', display: 'flex', justifyContent: 'space-between', height: '64px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <VideoIcon />
+                        <span style={{ marginLeft: '0.5rem', fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>Jerry Video Transcode</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <button style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '1rem' }} onClick={() => navigate('/videolist')}>
+                            <FilmIcon />
+                            My Videos
+                        </button>
+                        <button style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '1rem' }} onClick={handleLogout}>
+                            <LogoutIcon />
+                            Logout
+                        </button>
+                    </div>
                 </div>
-                <h1>Jerry Video Transcode</h1>
-                <button onClick={handleLogout} className="logout-button">Logout</button>
-            </div>
+            </nav>
 
-            <form onSubmit={handleSubmit} className="upload-section">
-                <input type="file" name="uploadFile" className="upload-input" onChange={handleFileChange} />
-                <input type="submit" value="Upload" className="upload-button" />
-                <button type="button" className="my-videos-button" onClick={() => navigate('/videolist')}>My Videos</button>
-            </form>
+            <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '1.5rem' }}>
+                <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827', marginBottom: '1.5rem' }}>Upload Your Video</h1>
+                
+                <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', padding: '1.5rem', marginBottom: '2rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' }}>
+                    <form onSubmit={handleSubmit}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <input
+                                type="file"
+                                accept="video/*"
+                                onChange={handleFileChange}
+                                style={{ flexGrow: 1, marginRight: '1rem' }}
+                            />
+                            <button type="submit" style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}>
+                                <UploadIcon />
+                                Upload
+                            </button>
+                        </div>
+                    </form>
+                    {uploadMessage && (
+                        <p style={{ marginTop: '1rem', textAlign: 'center', color: '#10b981', fontWeight: '600' }}>{uploadMessage}</p>
+                    )}
+                </div>
 
-            <h2>{uploadMessage}</h2>
+                <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', padding: '1.5rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>My Videos</h2>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                <th style={{ textAlign: 'left', padding: '0.75rem 0', color: '#6b7280' }}>File Name</th>
+                                <th style={{ textAlign: 'left', padding: '0.75rem 0', color: '#6b7280' }}>File Size</th>
+                                <th style={{ textAlign: 'left', padding: '0.75rem 0', color: '#6b7280' }}>Upload Time</th>
+                                <th style={{ textAlign: 'left', padding: '0.75rem 0', color: '#6b7280' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {videos.map((video) => (
+                                <tr key={video.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                    <td style={{ padding: '0.75rem 0' }}>{video.fileName}</td>
+                                    <td style={{ padding: '0.75rem 0' }}>{video.fileSize}</td>
+                                    <td style={{ padding: '0.75rem 0' }}>{video.uploadTime}</td>
+                                    <td style={{ padding: '0.75rem 0' }}>
+                                        <button 
+                                            onClick={() => handleViewVideo(video.fileName)}
+                                            style={{ padding: '0.25rem 0.5rem', backgroundColor: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.25rem', cursor: 'pointer' }}
+                                        >
+                                            View
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
-            <div className="scrollable-container">
-                <h2>Related YouTube Videos</h2>
-                <ul>
-                    {relatedVideos.map(video => (
-                        <li key={video.videoId}>
-                            <iframe
-                                width="560"
-                                height="315"
-                                src={`https://www.youtube.com/embed/${video.videoId}`}
-                                frameBorder="0"
-                                title={`YouTube video player: ${video.title}`}
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                            ></iframe>
-                            <p>{video.title}</p>
-                        </li>
-                    ))}
-                </ul>
-            </div>
+                {relatedVideos.length > 0 && (
+                    <div style={{ marginTop: '2rem' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem', textAlign: 'center' }}>Related YouTube Videos</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+                            {relatedVideos.map(video => (
+                                <div key={video.videoId} style={{ backgroundColor: 'white', borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' }}>
+                                    <lite-youtube 
+                                        videoid={video.videoId}
+                                        style={{ backgroundColor: '#000', position: 'relative', display: 'block', contain: 'content', backgroundPosition: 'center center', backgroundSize: 'cover', cursor: 'pointer', width: '100%', aspectRatio: '16 / 9' }}
+                                    ></lite-youtube>
+                                    <div style={{ padding: '1rem' }}>
+                                        <p style={{ color: '#1f2937', fontWeight: '600' }}>{video.title}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </main>
         </div>
     );
 };
