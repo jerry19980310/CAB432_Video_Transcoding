@@ -72,11 +72,11 @@ app.use((req, res, next) => {
 });
 
 // Import the API routes
-const apiRoute = require("./routes/api.js");
-app.use("/api", apiRoute);
+const apiRouter = require("./routes/api");
+app.use("/api", apiRouter);
 
-const webclientRoute = require("./routes/webclient.js");
-app.use("/", webclientRoute);
+const webclientRouter = require("./routes/webclient");
+app.use("/", webclientRouter);
 
 // Start the server
 app.listen(port, () => {

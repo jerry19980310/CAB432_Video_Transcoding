@@ -135,6 +135,8 @@ const authenticateCookie = (req, res, next) => {
     try {
         const user = jwt.verify(token, tokenSecret);
         req.user = user; // Attach user to request
+        console.log(`authTokencook verified for user: ${user.username} at URL ${req.url}`);
+        res.json(user.username);
         next();
     } catch (err) {
         return res.redirect("/login");

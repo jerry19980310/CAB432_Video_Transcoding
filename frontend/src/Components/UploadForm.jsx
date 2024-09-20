@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'lite-youtube-embed/src/lite-yt-embed.css';
 import 'lite-youtube-embed';
-// import '../styles/uploadForm.css'
 
 
 if (typeof window !== 'undefined') {
@@ -56,11 +55,7 @@ const UploadForm = () => {
     const [uploadMessage, setUploadMessage] = useState('');
     const [relatedVideos, setRelatedVideos] = useState([]);
     const navigate = useNavigate();
-    const [videos, setVideos] = useState([
-        { id: 1, fileName: 'My Vacation Video.mp4', fileSize: '250 MB', uploadTime: '09-30-2024' },
-        { id: 2, fileName: 'Birthday Party.mov', fileSize: '500 MB', uploadTime: '09-29-2024' },
-        { id: 3, fileName: 'Project Presentation.avi', fileSize: '100 MB', uploadTime: '09-28-2024' },
-    ]);
+    const [videos, setVideos] = useState([]);
 
     const handleFileChange = useCallback((event) => {
         const selectedFile = event.target.files[0];
@@ -124,100 +119,103 @@ const UploadForm = () => {
         // Implement view functionality here
     }, []);
 
-    return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6', width: '100%', padding: '0 2rem' }}>
-            <nav style={{ backgroundColor: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)', width: '100%' }}>
-                <div style={{ margin: '0 auto', padding: '0 1rem', display: 'flex', justifyContent: 'space-between', height: '64px', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <VideoIcon />
-                        <span style={{ marginLeft: '0.5rem', fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>Jerry Video Transcode</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <button style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '1rem' }} onClick={() => navigate('/videolist')}>
-                            <FilmIcon />
-                            My Videos
-                        </button>
-                        <button style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '1rem' }} onClick={handleLogout}>
-                            <LogoutIcon />
-                            Logout
-                        </button>
-                    </div>
-                </div>
-            </nav>
 
-            <main style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '1280px', margin: '2rem auto' }}>
-                <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827', marginBottom: '1.5rem' }}>Upload Your Video</h1>
-                
-                <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', padding: '1.5rem', marginBottom: '2rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' }}>
-                    <form onSubmit={handleSubmit}>
+    return (
+        <div style={{ minHeight: '100vh', width: '100%', backgroundColor: '#f3f4f6', padding: '2rem' }}>
+            <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
+                <nav style={{ backgroundColor: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)', padding: '1rem', marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <input
-                                type="file"
-                                accept="video/*"
-                                onChange={handleFileChange}
-                                style={{ flexGrow: 1, marginRight: '1rem' }}
-                            />
-                            <button type="submit" style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}>
-                                <UploadIcon />
-                                Upload
+                            <VideoIcon />
+                            <span style={{ marginLeft: '0.5rem', fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>Jerry Video Transcode</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <button style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '1rem' }} onClick={() => navigate('/videolist')}>
+                                <FilmIcon />
+                                My Videos
+                            </button>
+                            <button style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '1rem' }} onClick={handleLogout}>
+                                <LogoutIcon />
+                                Logout
                             </button>
                         </div>
-                    </form>
-                    {uploadMessage && (
-                        <p style={{ marginTop: '1rem', textAlign: 'center', color: '#10b981', fontWeight: '600' }}>{uploadMessage}</p>
-                    )}
-                </div>
-
-                <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', padding: '1.5rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>My Videos</h2>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                <th style={{ textAlign: 'left', padding: '0.75rem 0', color: '#6b7280' }}>File Name</th>
-                                <th style={{ textAlign: 'left', padding: '0.75rem 0', color: '#6b7280' }}>File Size</th>
-                                <th style={{ textAlign: 'left', padding: '0.75rem 0', color: '#6b7280' }}>Upload Time</th>
-                                <th style={{ textAlign: 'left', padding: '0.75rem 0', color: '#6b7280' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {videos.map((video) => (
-                                <tr key={video.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                    <td style={{ padding: '0.75rem 0' }}>{video.fileName}</td>
-                                    <td style={{ padding: '0.75rem 0' }}>{video.fileSize}</td>
-                                    <td style={{ padding: '0.75rem 0' }}>{video.uploadTime}</td>
-                                    <td style={{ padding: '0.75rem 0' }}>
-                                        <button 
-                                            onClick={() => handleViewVideo(video.fileName)}
-                                            style={{ padding: '0.25rem 0.5rem', backgroundColor: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.25rem', cursor: 'pointer' }}
-                                        >
-                                            View
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {relatedVideos.length > 0 && (
-                    <div style={{ width: '100%', marginTop: '2rem' }}>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem', textAlign: 'center' }}>Related YouTube Videos</h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-                            {relatedVideos.map(video => (
-                                <div key={video.videoId} style={{ backgroundColor: 'white', borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' }}>
-                                    <lite-youtube 
-                                        videoid={video.videoId}
-                                        style={{ backgroundColor: '#000', position: 'relative', display: 'block', contain: 'content', backgroundPosition: 'center center', backgroundSize: 'cover', cursor: 'pointer', width: '100%', aspectRatio: '16 / 9' }}
-                                    ></lite-youtube>
-                                    <div style={{ padding: '1rem' }}>
-                                        <p style={{ color: '#1f2937', fontWeight: '600' }}>{video.title}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
                     </div>
-                )}
-            </main>
+                </nav>
+
+                <main style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827' }}>Upload Your Video</h1>
+                    
+                    <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', padding: '1.5rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)', marginBottom: '2rem' }}>
+                        <form onSubmit={handleSubmit}>
+                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                                <input
+                                    type="file"
+                                    accept="video/*"
+                                    onChange={handleFileChange}
+                                    style={{ flexGrow: 1, minWidth: '200px' }}
+                                />
+                                <button type="submit" style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}>
+                                    <UploadIcon />
+                                    Upload
+                                </button>
+                            </div>
+                        </form>
+                        {uploadMessage && (
+                            <p style={{ marginTop: '1rem', textAlign: 'center', color: '#10b981', fontWeight: '600' }}>{uploadMessage}</p>
+                        )}
+                    </div>
+
+                    <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', padding: '1.5rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)', overflowX: 'auto', marginBottom: '2rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>My Videos</h2>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                    <th style={{ textAlign: 'left', padding: '0.75rem 0', color: '#6b7280' }}>File Name</th>
+                                    <th style={{ textAlign: 'left', padding: '0.75rem 0', color: '#6b7280' }}>File Size</th>
+                                    <th style={{ textAlign: 'left', padding: '0.75rem 0', color: '#6b7280' }}>Upload Time</th>
+                                    <th style={{ textAlign: 'left', padding: '0.75rem 0', color: '#6b7280' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {videos.map((video) => (
+                                    <tr key={video.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                        <td style={{ padding: '0.75rem 0' }}>{video.fileName}</td>
+                                        <td style={{ padding: '0.75rem 0' }}>{video.fileSize}</td>
+                                        <td style={{ padding: '0.75rem 0' }}>{video.uploadTime}</td>
+                                        <td style={{ padding: '0.75rem 0' }}>
+                                            <button 
+                                                onClick={() => handleViewVideo(video.fileName)}
+                                                style={{ padding: '0.25rem 0.5rem', backgroundColor: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.25rem', cursor: 'pointer' }}
+                                            >
+                                                View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {relatedVideos.length > 0 && (
+                        <div style={{ width: '100%', marginTop: '2rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>Related YouTube Videos</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+                                {relatedVideos.map(video => (
+                                    <div key={video.videoId} style={{ backgroundColor: 'white', borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' }}>
+                                        <lite-youtube 
+                                            videoid={video.videoId}
+                                            style={{ backgroundColor: '#000', position: 'relative', display: 'block', contain: 'content', backgroundPosition: 'center center', backgroundSize: 'cover', cursor: 'pointer', width: '100%', aspectRatio: '16 / 9' }}
+                                        ></lite-youtube>
+                                        <div style={{ padding: '1rem' }}>
+                                            <p style={{ color: '#1f2937', fontWeight: '600' }}>{video.title}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </main>
+            </div>
         </div>
     );
 };

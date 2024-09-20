@@ -9,54 +9,38 @@ const ffmpegEmitter = new EventEmitter();
 const fs = require('fs');
 const { searchYouTube } = require("../functions/googleAPI.js");
 const CP = require("node:child_process");
-const AWS = require('aws-sdk');
 const { s3Client } = require('../public/config.js');
 const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
-AWS.config.update({
-    region: process.env.AWS_REGION || 'ap-southeast-2',
-});
-  
-const s3 = new AWS.S3();
-
 // A plain GET will give the login page
-router.get("/login", (req, res) => {
-   res.sendFile(path.join(__dirname, "../public/login.html"));
-});
+// router.get("/login", (req, res) => {
+//    res.sendFile(path.join(__dirname, "../public/login.html"));
+// });
 
-router.get("/videolist", (req, res) => {
-   res.sendFile(path.join(__dirname, "../public/videolist.html"));
-});
+// router.get("/videolist", (req, res) => {
+//    res.sendFile(path.join(__dirname, "../public/videolist.html"));
+// });
 
 // POST for getting the cookie
 router.post("/login", (req, res) => {
-   // Check the username and password
+   console.log("Login attempt for user:", req.body.username);
    const { username, password } = req.body;
    const token = auth.generateAccessToken(username, password);
 
    if (!token) {
-      console.log("Unsuccessful login by user", username);
-      return res.sendStatus(403);
+      console.log("Login failed for user:", username);
+      return res.status(403).json({ success: false, message: "Invalid credentials" });
    }
 
-   console.log("Successful login by user", username);
-
-   // Store the token in a cookie so that later requests will have it
-   res.cookie("token", token, {
-      httpOnly: false,
-      sameSite: "Strict",
+   console.log("Login successful for user:", username);
+   res.json({
+    success: true,
+    token: token,
+    username: username
    });
-
-   res.cookie("username", username, {
-      httpOnly: false,
-      sameSite: "Strict",
-   });
-
-   // Web client gets redirected to / after successful login
-   res.redirect("/");
 });
 
 // Log out by deleting token cookie.  Redirect back to login.
@@ -68,51 +52,65 @@ router.get("/logout", auth.authenticateCookie, (req, res) => {
 
 
 //fetching videos
-router.get('/videos/:username', auth.authenticateCookie, (req, res) => {
-   console.log("Fetching videos for user:", req.params.username);
-   // Check if the user is an admin
-   if (req.user.admin) {
-       // Admin user: fetch all videos
-       req.db.all("SELECT * FROM videos", (err, rows) => {
-           if (err) {
-               res.status(500).send("Error fetching videos from database: " + err.message);
-               return;
-           }
-
-           const videos = rows.map(row => ({
-               id: row.id,
-               fileName: row.fileName,
-               uploadPath: row.uploadPath,
-               shortFileName: row.shortFileName,
-               fileExtension: row.fileExtension,
-               fileSize: row.fileSize,
-               uploadTime: row.uploadTime,
-               userName: row.userName
-           }));
-           res.json(videos);
-       });
-   } else {
-       // Non-admin user: fetch videos for the specified username
-       req.db.all("SELECT * FROM videos WHERE userName=?", [req.params.username], (err, rows) => {
-           if (err) {
-               res.status(500).send("Error fetching videos from database: " + err.message);
-               return;
-           }
-
-           const videos = rows.map(row => ({
-               id: row.id,
-               fileName: row.fileName,
-               uploadPath: row.uploadPath,
-               shortFileName: row.shortFileName,
-               fileExtension: row.fileExtension,
-               fileSize: row.fileSize,
-               uploadTime: row.uploadTime,
-               userName: row.userName
-           }));
-           res.json(videos);
-       });
-   }
-});
+router.get('/videos', auth.authenticateCookie, (req, res) => {
+    console.log("Fetching videos for user:", req.user.username);
+ 
+    // Check if the user is an admin
+    if (req.user.admin) {
+        console.log("1");
+        // Admin user: fetch all videos
+        req.db.all("SELECT * FROM videos", (err, rows) => {
+            if (err) {
+                console.log("Error fetching videos for admin:", err.message);
+                console.log("2");
+                return res.status(500).send("Error fetching videos from database: " + err.message);
+            }
+ 
+            const videos = rows.map(row => ({
+                id: row.id,
+                fileName: row.fileName,
+                uploadPath: row.uploadPath,
+                shortFileName: row.shortFileName,
+                fileExtension: row.fileExtension,
+                fileSize: row.fileSize,
+                uploadTime: row.uploadTime,
+                userName: row.userName
+            }));
+ 
+            // Return the videos as a JSON response
+            console.log("3");
+            return res.json(videos); // Ensure a return to avoid continuing the execution
+        });
+    } else {
+        // Non-admin user: fetch videos for the specified username
+        req.db.all("SELECT * FROM videos WHERE userName=?", [req.user.username], (err, rows) => {
+            console.log("4");
+            if (err) {
+                console.log("Error fetching videos for user:", err.message);
+                console.log("5");
+                return res.status(500).send("Error fetching videos from database: " + err.message);
+            }
+            console.log("6");
+            console.log(rows);
+ 
+            const videos = rows.map(row => ({
+                id: row.id,
+                fileName: row.fileName,
+                uploadPath: row.uploadPath,
+                shortFileName: row.shortFileName,
+                fileExtension: row.fileExtension,
+                fileSize: row.fileSize,
+                uploadTime: row.uploadTime,
+                userName: row.userName
+            }));
+            console.log("7");
+            console.log(videos);
+ 
+            // Return the videos as a JSON response
+            return res.json(videos); // Ensure a return here as well
+        });
+    }
+ });
 
 router.get('/progress/:id', (req, res) => {
     res.writeHead(200, {
@@ -158,6 +156,70 @@ router.get('/download/:id', auth.authenticateCookie, (req, res) => {
      }, 500); // Simulates a 0.5-second delay
  });
 
+
+router.post("/upload", auth.authenticateCookie, async (req, res) => {
+    const file = req.files.uploadFile;
+    const fullFileName = file.name;
+    const fileExtension = fullFileName.split('.').pop();
+    const fileNameWithoutExtension = fullFileName.replace(/\.[^/.]+$/, "");
+    const fileSize = file.size;
+    const uploadPath = path.join(__dirname, "../uploads", fullFileName);
+ 
+    try {
+        await file.mv(uploadPath);
+
+        // Analyze video metadata
+        ffmpeg.ffprobe(uploadPath, async (err, metadata) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).send("Failed to extract video metadata: " + err.message);
+            }
+
+            const duration = metadata.format.duration;
+            const bitrate = metadata.format.bit_rate;
+            const resolution = metadata.streams[0].width + 'x' + metadata.streams[0].height;
+
+            req.db.run("INSERT INTO videos(fileName, fileExtension, fileSize, uploadPath, userName, shortFileName, duration, bitrate, resolution) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [fullFileName, fileExtension, fileSize, uploadPath, req.user.username, fileNameWithoutExtension, duration, bitrate, resolution], async function (dbErr) {
+                    if (dbErr) {
+                        return res.status(500).send("Failed to insert video data into database: " + dbErr.message);
+                    }
+
+                    const newUploadPath = path.join(__dirname, "../uploads", `${this.lastID}.${fileExtension}`);
+
+                    fs.rename(uploadPath, newUploadPath, async (err) => {
+                        if (err) {
+                            console.error(err);
+                            return res.status(500).send(err.message);
+                        }
+
+                        req.db.run("UPDATE videos SET uploadPath = ? WHERE id = ?", [newUploadPath, this.lastID], async (updateErr) => {
+                            if (updateErr) {
+                                return res.status(500).send("Failed to update video data in database: " + updateErr.message);
+                            }
+
+                            try {
+                                const relatedVideos = await searchYouTube(fileNameWithoutExtension, 10);
+                                res.json({
+                                    message: 'Upload successful',
+                                    fileName: fullFileName,
+                                    relatedVideos: relatedVideos,
+                                });
+                            } catch (error) {
+                                console.error(error);
+                                res.status(500).json({ message: 'Upload successful, but failed to fetch related videos', error: error.message });
+                            }
+                        });
+                    });
+                }
+            );
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send(error.message);
+    }
+});
+//jerry
 // router.post("/upload", auth.authenticateCookie, async (req, res) => {
 //     const file = req.files.uploadFile;
 //     const fullFileName = file.name;
@@ -309,6 +371,7 @@ router.get('/download/:id', auth.authenticateCookie, (req, res) => {
 //       res.status(500).send("Failed to upload video: " + uploadError.message);
 //     }
 // });
+//jerry
 
 router.post('/transcode/:id', auth.authenticateCookie, (req, res) => {
     const videoId = req.params.id;
