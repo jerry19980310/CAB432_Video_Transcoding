@@ -64,50 +64,86 @@ const UploadForm = () => {
         }
     }, []);
 
-    const handleSubmit = useCallback((event) => {
+    const handleSubmit = useCallback(async (event) => {
         event.preventDefault();
-
+    
         if (!file) {
-            setUploadMessage('Please select a file to upload.');
-            return;
+          setUploadMessage('Please select a file to upload.');
+          return;
         }
-
-        const formData = new FormData();
-        formData.append('uploadFile', file);
-
-        setUploadMessage('Uploading...');
-
-        fetch('/upload', {
+    
+        try {
+          setUploadMessage('Requesting upload URL...');
+    
+          // 1. 请求服务器生成预签名上传 URL
+          const response = await fetch(`generate-upload-url?fileName=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}`, {
+            method: 'GET',
+            credentials: 'include',
+          });
+    
+          if (!response.ok) {
+            throw new Error(`Failed to get upload URL: ${response.statusText}`);
+          }
+    
+          const { url: uploadUrl, key } = await response.json();
+    
+          if (!uploadUrl || !key) {
+            throw new Error('Invalid upload URL or key received from server.');
+          }
+    
+          setUploadMessage('Uploading to S3...');
+    
+          // 2. 使用预签名 URL 上传文件到 S3
+          const uploadResponse = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': file.type,
+            },
+            body: file,
+          });
+    
+          if (!uploadResponse.ok) {
+            throw new Error(`Failed to upload file to S3: ${uploadResponse.statusText}`);
+          }
+    
+          setUploadMessage('Upload to S3 successful. Notifying server...');
+    
+          // 3. 通知服务器上传完成
+          const notifyResponse = await fetch('upload-complete', {
             method: 'POST',
-            body: formData,
-            credentials: 'include', 
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.message && data.fileName) {
-                    setUploadMessage(`${data.fileName} uploaded successfully!`);
-                    setVideos(prevVideos => [...prevVideos, {
-                        id: prevVideos.length + 1,
-                        fileName: data.fileName,
-                        fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-                        uploadTime: new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-                    }]);
-                }
-
-                if (data.relatedVideos) {
-                    setRelatedVideos(data.relatedVideos);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                setUploadMessage('Error uploading file. Please try again.');
-            });
-    }, [file, setVideos]);
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              key: key, // S3 对象键
+              userName: 'currentUser', // 根据您的身份验证逻辑获取当前用户名
+            }),
+          });
+    
+          if (!notifyResponse.ok) {
+            throw new Error(`Failed to notify server: ${notifyResponse.statusText}`);
+          }
+    
+          const notifyData = await notifyResponse.json();
+    
+          if (notifyData.message && notifyData.fileName) {
+            setUploadMessage(`${notifyData.fileName} uploaded successfully!`);
+            setVideos(prevVideos => [...prevVideos, {
+              id: prevVideos.length + 1,
+              fileName: notifyData.fileName,
+              fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+              uploadTime: new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+            }]);
+          }
+    
+          if (notifyData.relatedVideos) {
+            setRelatedVideos(notifyData.relatedVideos);
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          setUploadMessage(`Error: ${error.message}`);
+        }
+      }, [file]);
 
     const handleLogout = useCallback(() => {
         document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
