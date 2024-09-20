@@ -10,7 +10,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch('/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -18,8 +18,12 @@ const Login = () => {
         body: JSON.stringify({ username, password }),
       });
       const data = await response.json();
+      console.log(data);
       if (data.success) {
-        document.cookie = `token=${data.authToken}; path=/; max-age=1800; SameSite=Strict`;
+        console.log(data);
+        document.cookie = `token=${data.token}; path=/; max-age=1800; SameSite=Strict`;
+        document.cookie = `username=${data.username}; path=/; max-age=1800; SameSite=Strict`;
+        console.log(document.cookie);
         navigate('/upload'); // Changed from '/main' to '/upload'
       } else {
         alert('Login failed. Please check your credentials.');
