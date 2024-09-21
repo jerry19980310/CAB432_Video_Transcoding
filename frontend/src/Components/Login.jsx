@@ -19,12 +19,9 @@ const Login = () => {
         body: JSON.stringify({ username, password }),
       });
       const data = await response.json();
-      console.log(data);
       if (data.success) {
-        console.log(data);
-        document.cookie = `token=${data.token}; path=/; max-age=1800; SameSite=Strict`;
-        document.cookie = `username=${data.username}; path=/; max-age=1800; SameSite=Strict`;
-        console.log(document.cookie);
+        document.cookie = `token=${data.data.idToken}; path=/; max-age=1800; SameSite=Strict`;
+        document.cookie = `username=${data.data.username}; path=/; max-age=1800; SameSite=Strict`;
         navigate('/upload'); // Changed from '/main' to '/upload'
       } else {
         alert('Login failed. Please check your credentials.');

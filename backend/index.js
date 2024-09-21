@@ -11,7 +11,7 @@ const port = process.env.PORT || 3001;
 
 // Enable CORS if your frontend runs on a different domain or port
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: process.env.CLIENT_URL,
     method: ['GET', 'POST', 'DELETE', 'PUT'],
     credentials: true
 }));
@@ -39,7 +39,8 @@ const db = new sqlite3.Database('./videoData.db', sqlite3.OPEN_READWRITE | sqlit
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,
         email TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL
+        password TEXT NOT NULL,
+        cognito_user_id TEXT NOT NULL
     )`, [], (err) => {
         if (err) {
             console.error('Error creating users table: ' + err.message);

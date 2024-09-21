@@ -148,7 +148,15 @@ const UploadForm = () => {
       }, [file]);
 
     const handleLogout = useCallback(() => {
-        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      const deleteCookie = (name) => {
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict`;
+    };
+        deleteCookie('token');
+        deleteCookie('idToken');
+        deleteCookie('accessToken');
+        deleteCookie('refreshToken');
+        deleteCookie('expiresIn');
+        deleteCookie('username');
         navigate('/login');
     }, [navigate]);
 

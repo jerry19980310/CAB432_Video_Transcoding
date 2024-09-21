@@ -13,8 +13,13 @@ const { s3Client } = require('../public/config.js');
 const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const fetch = require('node-fetch');
+const { InitiateAuthCommand } = require("@aws-sdk/client-cognito-identity-provider");
+const cognitoClient = require("../public/cognito"); // Path to your AWS config
 
-const s3 = require('aws-sdk/clients/s3');
+
+const CLIENT_ID = process.env.COGNITO_CLIENT_ID; 
+const JWT_SECRET = process.env.JWT_SECRET ; 
+
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
@@ -28,22 +33,104 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 // });
 
 // POST for getting the cookie
-router.post("/login", (req, res) => {
-   console.log("Login attempt for user:", req.body.username);
-   const { username, password } = req.body;
-   const token = auth.generateAccessToken(username, password);
+// router.post("/login", (req, res) => {
+//    console.log("Login attempt for user:", req.body.username);
+//    const { username, password } = req.body;
+//    const token = auth.generateAccessToken(username, password);
 
-   if (!token) {
-      console.log("Login failed for user:", username);
+//    if (!token) {
+//       console.log("Login failed for user:", username);
+//       return res.status(403).json({ success: false, message: "Invalid credentials" });
+//    }
+
+//    console.log("Login successful for user:", username);
+//    res.json({
+//     success: true,
+//     token: token,
+//     username: username
+//    });
+// });
+
+router.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  // 驗證輸入欄位
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: "All fields are required." });
+  }
+
+  const params = {
+    AuthFlow: "USER_PASSWORD_AUTH", // 使用者名稱與密碼認證流程
+    ClientId: CLIENT_ID,
+    AuthParameters: {
+      USERNAME: username,
+      PASSWORD: password,
+    },
+  };
+
+  try {
+    const command = new InitiateAuthCommand(params);
+    const response = await cognitoClient.send(command);
+
+    // 檢查是否成功
+    console.log("Cognito response:", response);
+    if (response.AuthenticationResult) {
+      const { IdToken, AccessToken, RefreshToken, ExpiresIn } = response.AuthenticationResult;
+
+      // 如果您希望使用 Cognito 的 ID Token 作為回應的一部分
+      return res.json({
+        success: true,
+        message: "Login successful.",
+        data: {
+          idToken: IdToken,
+          accessToken: AccessToken,
+          refreshToken: RefreshToken,
+          expiresIn: ExpiresIn,
+          username: username,
+        },
+      });
+
+      // 或者，若您希望生成自訂的 JWT，則可以使用以下方式：
+      /*
+      const customToken = jwt.sign(
+        {
+          username: username,
+          // 可以根據需要添加其他用戶資訊
+        },
+        JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+
+      return res.json({
+        success: true,
+        message: "登入成功。",
+        authToken: customToken,
+      });
+      */
+    } else {
+      // 未預期的回應
+      return res.status(500).json({
+        success: false,
+        message: "Login failed. Please try again later.",
+      });
+    }
+  } catch (error) {
+    // 處理特定的 Cognito 錯誤
+    if (error.name === "NotAuthorizedException") {
       return res.status(403).json({ success: false, message: "Invalid credentials" });
-   }
-
-   console.log("Login successful for user:", username);
-   res.json({
-    success: true,
-    token: token,
-    username: username
-   });
+    } else if (error.name === "UserNotFoundException") {
+      return res.status(403).json({ success: false, message: "User does not exist" });
+    } else if (error.name === "UserNotConfirmedException") {
+      return res.status(403).json({ success: false, message: "User is not confirmed. Please verify your email." });
+    } else {
+      // 通用錯誤處理
+      console.error("Cognito Login Error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "An error occurred during login. Please try again later。",
+      });
+    }
+  }
 });
 
 // Log out by deleting token cookie.  Redirect back to login.

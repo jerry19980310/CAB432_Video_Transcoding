@@ -7,6 +7,4 @@ const s3Client = new S3Client({
   region: process.env.AWS_REGION,
 });
 
-console.log('S3 client created');
-
 module.exports = { s3Client };
