@@ -110,6 +110,14 @@ const UploadForm = () => {
           setUploadMessage('Upload to S3 successful. Notifying server...');
     
           // 3. 通知服务器上传完成
+          const getUserFromCookies = () => {
+            const cookieValue = document.cookie
+              .split('; ')
+              .find((row) => row.startsWith('username='))
+              ?.split('=')[1];
+            return cookieValue || '';
+          };
+          const userName = getUserFromCookies();
           const notifyResponse = await fetch(`${apiUrl}/upload-complete`, {
             method: 'POST',
             headers: {
@@ -118,7 +126,7 @@ const UploadForm = () => {
             credentials: 'include',
             body: JSON.stringify({
               key: key, // S3 对象键
-              userName: 'currentUser', // 根据您的身份验证逻辑获取当前用户名
+              userName:  userName// 根据您的身份验证逻辑获取当前用户名
             }),
           });
     
@@ -152,10 +160,6 @@ const UploadForm = () => {
         document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict`;
     };
         deleteCookie('token');
-        deleteCookie('idToken');
-        deleteCookie('accessToken');
-        deleteCookie('refreshToken');
-        deleteCookie('expiresIn');
         deleteCookie('username');
         navigate('/login');
     }, [navigate]);

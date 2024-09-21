@@ -21,7 +21,7 @@ const VideoActions = () => {
         console.log(`Transcoding video with ID: ${id} to ${format} at ${resolution}`);
         const token = getTokenFromCookies();
 
-        const evtSource = new EventSource(`/progress/${id}`);
+        const evtSource = new EventSource(`${apiUrl}/progress/${id}`);
         evtSource.onmessage = (event) => {
             const data = JSON.parse(event.data);
             setProgress(data.progress);

@@ -143,8 +143,8 @@ router.get("/logout", auth.authenticateCookie, (req, res) => {
 
 //fetching videos
 router.get('/videos', auth.authenticateCookie, (req, res) => {
-    console.log("Fetching videos for user:", req.user.username);
- 
+    console.log("Fetching videos for user:", req.user);
+  // console.log(req);
     // Check if the user is an admin
     if (req.user.admin) {
         console.log("1");
@@ -173,8 +173,9 @@ router.get('/videos', auth.authenticateCookie, (req, res) => {
         });
     } else {
         // Non-admin user: fetch videos for the specified username
-        req.db.all("SELECT * FROM videos WHERE userName=?", [req.user.username], (err, rows) => {
+        req.db.all("SELECT * FROM videos WHERE userName=?", [req.user], (err, rows) => {
             console.log("4");
+            console.log(req.user);
             if (err) {
                 console.log("Error fetching videos for user:", err.message);
                 console.log("5");

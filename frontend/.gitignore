@@ -13,7 +13,4 @@ yarn-debug.log*
 yarn-error.log*
 
 
-.env
-videoDatabase
-temp/
-uploads/
+

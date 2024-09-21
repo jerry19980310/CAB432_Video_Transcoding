@@ -42,9 +42,12 @@ const authenticateCookie = (req, res, next) => {
             console.error("JWT verification failed:", err);
             return res.redirect("/login");
         }
+        console.log('Decoded JWT:', decoded['cognito:username']);
+        console.log('Decoded JWT:', decoded.iss);
 
-        req.user = decoded; // 將用戶信息附加到請求對象
-        console.log(`authTokencook verified for user: ${decoded.username} at URL ${req.url}`);
+        req.user = decoded['cognito:username'] ; // 將用戶信息附加到請求對象
+        const username = decoded['cognito:username'] 
+        console.log(`authTokencook verified for user: ${username} at URL ${req.url}`);
         next();
     });
 };
