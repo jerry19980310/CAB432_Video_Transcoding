@@ -87,9 +87,26 @@ const VideoActions = () => {
         .catch(error => console.error('Error:', error));
     };
 
-    const downloadVideo = () => {
-        console.log(`Downloading video with ID: ${id}`);
-        window.location.href = `${apiUrl}/generate-download-url`;
+    const downloadVideo = async () => {
+        try {
+            console.log(`Downloading video with ID: ${id}`);
+            // Assuming 'id' is the key. Adjust this if your key is different.
+            const key = id;
+
+            const data = await fetch(`${apiUrl}/generate-download-url?key=${encodeURIComponent(key)}`, {
+                method: 'GET',
+            });
+
+            if (data.url) {
+                // Redirect the browser to the signed URL to initiate download
+                window.location.href = data.url;
+            } else {
+                throw new Error('Download URL not found in response.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert(`Error: ${error.message}`);
+        }
     };
 
     return (

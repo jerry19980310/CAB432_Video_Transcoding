@@ -72,12 +72,12 @@ const VideoList = () => {
         {videos.map((video) => (
           <li key={video.id}>
             <div className="video-info">
-              <a href={`/videoactions/${video.id}`} target="_blank" rel="noreferrer">
+              <a href={`/videoactions/${video.fileName}`} target="_blank" rel="noreferrer">
                 <strong>File ID:</strong> {video.id}
               </a>
             </div>
             <div className="video-info">
-              <strong>File Name:</strong> {video.shortFileName}
+              <strong>File Name:</strong> {video.fileName}
             </div>
             <div className="video-info">
               <strong>File Size:</strong> {video.fileSize} bytes

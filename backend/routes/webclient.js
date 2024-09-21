@@ -557,6 +557,7 @@ router.get('/generate-upload-url', auth.authenticateCookie, async (req, res) => 
 // generate-download-url route
 router.get('/generate-download-url', auth.authenticateCookie, async (req, res) => {
   const { key } = req.query;
+  console.log(req);
 
   if (!key) {
     return res.status(400).json({ error: 'Missing key query parameter' });
@@ -574,6 +575,7 @@ router.get('/generate-download-url', auth.authenticateCookie, async (req, res) =
 
   try {
     const downloadUrl = await getSignedUrl(s3Client, command, { expiresIn: 60 }); // 有效期为60秒
+    console.log(downloadUrl);
     res.json({ url: downloadUrl });
   } catch (err) {
     console.error(err);
