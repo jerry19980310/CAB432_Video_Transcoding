@@ -51,6 +51,7 @@ const UploadIcon = () => (
 );
 
 const UploadForm = () => {
+    const apiUrl = process.env.REACT_APP_API_URL;
     const [file, setFile] = useState(null);
     const [uploadMessage, setUploadMessage] = useState('');
     const [relatedVideos, setRelatedVideos] = useState([]);
@@ -76,7 +77,7 @@ const UploadForm = () => {
           setUploadMessage('Requesting upload URL...');
     
           // 1. 请求服务器生成预签名上传 URL
-          const response = await fetch(`generate-upload-url?fileName=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}`, {
+          const response = await fetch(`${apiUrl}/generate-upload-url?fileName=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}`, {
             method: 'GET',
             credentials: 'include',
           });
@@ -109,11 +110,12 @@ const UploadForm = () => {
           setUploadMessage('Upload to S3 successful. Notifying server...');
     
           // 3. 通知服务器上传完成
-          const notifyResponse = await fetch('upload-complete', {
+          const notifyResponse = await fetch(`${apiUrl}/upload-complete`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
+            credentials: 'include',
             body: JSON.stringify({
               key: key, // S3 对象键
               userName: 'currentUser', // 根据您的身份验证逻辑获取当前用户名

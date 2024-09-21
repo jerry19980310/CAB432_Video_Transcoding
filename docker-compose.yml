@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./Ass2/backend
+    container_name: mybackend
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      # 添加其他环境变量，如数据库连接字符串等
+    networks:
+      - app-network
+
+  frontend:
+    build: ./Ass2/frontend
+    container_name: myfrontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

@@ -11,6 +11,7 @@ const VideoActions = () => {
     const [newName, setNewName] = useState('');
     const [format, setFormat] = useState('mp4');
     const [resolution, setResolution] = useState('1280x720');
+    const apiUrl = process.env.REACT_APP_API_URL;
 
     const getTokenFromCookies = () => {
         return document.cookie.split('; ').find(row => row.startsWith('token=')).split('=')[1];
@@ -31,7 +32,7 @@ const VideoActions = () => {
             }
         };
 
-        fetch(`/transcode/${id}`, {
+        fetch(`${apiUrl}/transcode/${id}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -47,7 +48,7 @@ const VideoActions = () => {
         console.log(`Renaming video with ID: ${id} to ${newName}`);
         const token = getTokenFromCookies();
 
-        fetch(`/rename/${id}`, {
+        fetch(`${apiUrl}/rename/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -69,7 +70,7 @@ const VideoActions = () => {
         console.log(`Deleting video with ID: ${id}`);
         const token = getTokenFromCookies();
 
-        fetch(`/delete/${id}`, {
+        fetch(`${apiUrl}/delete/${id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -88,7 +89,7 @@ const VideoActions = () => {
 
     const downloadVideo = () => {
         console.log(`Downloading video with ID: ${id}`);
-        window.location.href = `/download/${id}`;
+        window.location.href = `${apiUrl}/generate-download-url`;
     };
 
     return (

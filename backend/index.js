@@ -11,7 +11,8 @@ const port = process.env.PORT || 3001;
 
 // Enable CORS if your frontend runs on a different domain or port
 app.use(cors({
-    origin: "http://localhost:3000",  // Your frontend's origin
+    origin: 'http://localhost:3000',
+    method: ['GET', 'POST', 'DELETE', 'PUT'],
     credentials: true
 }));
 

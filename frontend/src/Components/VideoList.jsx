@@ -9,6 +9,7 @@ const VideoList = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const hasFetched = useRef(false);
+  const apiUrl = process.env.REACT_APP_API_URL;
 
   useEffect(() => {
     if (hasFetched.current) return;
@@ -29,7 +30,7 @@ const VideoList = () => {
 
         setUsername(username);
 
-        const response = await axios.get(`videos`, {
+        const response = await axios.get(`${apiUrl}/videos`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -12,6 +12,9 @@ const CP = require("node:child_process");
 const { s3Client } = require('../public/config.js');
 const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const fetch = require('node-fetch');
+
+const s3 = require('aws-sdk/clients/s3');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
@@ -157,68 +160,68 @@ router.get('/download/:id', auth.authenticateCookie, (req, res) => {
  });
 
 
-router.post("/upload", auth.authenticateCookie, async (req, res) => {
-    const file = req.files.uploadFile;
-    const fullFileName = file.name;
-    const fileExtension = fullFileName.split('.').pop();
-    const fileNameWithoutExtension = fullFileName.replace(/\.[^/.]+$/, "");
-    const fileSize = file.size;
-    const uploadPath = path.join(__dirname, "../uploads", fullFileName);
+// router.post("/upload", auth.authenticateCookie, async (req, res) => {
+//     const file = req.files.uploadFile;
+//     const fullFileName = file.name;
+//     const fileExtension = fullFileName.split('.').pop();
+//     const fileNameWithoutExtension = fullFileName.replace(/\.[^/.]+$/, "");
+//     const fileSize = file.size;
+//     const uploadPath = path.join(__dirname, "../uploads", fullFileName);
  
-    try {
-        await file.mv(uploadPath);
+//     try {
+//         await file.mv(uploadPath);
 
-        // Analyze video metadata
-        ffmpeg.ffprobe(uploadPath, async (err, metadata) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).send("Failed to extract video metadata: " + err.message);
-            }
+//         // Analyze video metadata
+//         ffmpeg.ffprobe(uploadPath, async (err, metadata) => {
+//             if (err) {
+//                 console.error(err);
+//                 return res.status(500).send("Failed to extract video metadata: " + err.message);
+//             }
 
-            const duration = metadata.format.duration;
-            const bitrate = metadata.format.bit_rate;
-            const resolution = metadata.streams[0].width + 'x' + metadata.streams[0].height;
+//             const duration = metadata.format.duration;
+//             const bitrate = metadata.format.bit_rate;
+//             const resolution = metadata.streams[0].width + 'x' + metadata.streams[0].height;
 
-            req.db.run("INSERT INTO videos(fileName, fileExtension, fileSize, uploadPath, userName, shortFileName, duration, bitrate, resolution) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [fullFileName, fileExtension, fileSize, uploadPath, req.user.username, fileNameWithoutExtension, duration, bitrate, resolution], async function (dbErr) {
-                    if (dbErr) {
-                        return res.status(500).send("Failed to insert video data into database: " + dbErr.message);
-                    }
+//             req.db.run("INSERT INTO videos(fileName, fileExtension, fileSize, uploadPath, userName, shortFileName, duration, bitrate, resolution) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+//                 [fullFileName, fileExtension, fileSize, uploadPath, req.user.username, fileNameWithoutExtension, duration, bitrate, resolution], async function (dbErr) {
+//                     if (dbErr) {
+//                         return res.status(500).send("Failed to insert video data into database: " + dbErr.message);
+//                     }
 
-                    const newUploadPath = path.join(__dirname, "../uploads", `${this.lastID}.${fileExtension}`);
+//                     const newUploadPath = path.join(__dirname, "../uploads", `${this.lastID}.${fileExtension}`);
 
-                    fs.rename(uploadPath, newUploadPath, async (err) => {
-                        if (err) {
-                            console.error(err);
-                            return res.status(500).send(err.message);
-                        }
+//                     fs.rename(uploadPath, newUploadPath, async (err) => {
+//                         if (err) {
+//                             console.error(err);
+//                             return res.status(500).send(err.message);
+//                         }
 
-                        req.db.run("UPDATE videos SET uploadPath = ? WHERE id = ?", [newUploadPath, this.lastID], async (updateErr) => {
-                            if (updateErr) {
-                                return res.status(500).send("Failed to update video data in database: " + updateErr.message);
-                            }
+//                         req.db.run("UPDATE videos SET uploadPath = ? WHERE id = ?", [newUploadPath, this.lastID], async (updateErr) => {
+//                             if (updateErr) {
+//                                 return res.status(500).send("Failed to update video data in database: " + updateErr.message);
+//                             }
 
-                            try {
-                                const relatedVideos = await searchYouTube(fileNameWithoutExtension, 10);
-                                res.json({
-                                    message: 'Upload successful',
-                                    fileName: fullFileName,
-                                    relatedVideos: relatedVideos,
-                                });
-                            } catch (error) {
-                                console.error(error);
-                                res.status(500).json({ message: 'Upload successful, but failed to fetch related videos', error: error.message });
-                            }
-                        });
-                    });
-                }
-            );
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).send(error.message);
-    }
-});
+//                             try {
+//                                 const relatedVideos = await searchYouTube(fileNameWithoutExtension, 10);
+//                                 res.json({
+//                                     message: 'Upload successful',
+//                                     fileName: fullFileName,
+//                                     relatedVideos: relatedVideos,
+//                                 });
+//                             } catch (error) {
+//                                 console.error(error);
+//                                 res.status(500).json({ message: 'Upload successful, but failed to fetch related videos', error: error.message });
+//                             }
+//                         });
+//                     });
+//                 }
+//             );
+//         });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).send(error.message);
+//     }
+// });
 //jerry
 // router.post("/upload", auth.authenticateCookie, async (req, res) => {
 //     const file = req.files.uploadFile;
@@ -281,97 +284,101 @@ router.post("/upload", auth.authenticateCookie, async (req, res) => {
 //       }
 //   });
 
-// router.post("/upload", auth.authenticateCookie, async (req, res) => {
-//     const file = req.files.uploadFile;
-//     const fullFileName = file.name;
-//     const fileExtension = fullFileName.split('.').pop();
-//     const fileNameWithoutExtension = fullFileName.replace(/\.[^/.]+$/, "");
-//     const fileSize = file.size;
-  
-//     // name the file with a unique name
-//     const uniqueFileName = `${Date.now()}-${fullFileName}`;
-//     const tempFilePath = path.join(__dirname, "../temp", uniqueFileName);
-  
-//     try {
-//       if (!fs.existsSync(path.join(__dirname, "../temp"))) {
-//         fs.mkdirSync(path.join(__dirname, "../temp"));
-//       }
-  
-//       // temporarily save the file
-//       await file.mv(tempFilePath);
-  
-//       // Analyze video metadata
-//       ffmpeg.ffprobe(tempFilePath, async (err, metadata) => {
-//         if (err) {
-//           console.error(err);
-//           fs.unlinkSync(tempFilePath); // delete the temporary file
-//           return res.status(500).send("Failed to extract video metadata: " + err.message);
-//         }
-  
-//         const duration = metadata.format.duration;
-//         const bitrate = metadata.format.bit_rate;
-//         const resolution = metadata.streams[0].width + 'x' + metadata.streams[0].height;
-  
-//         // Upload the file to S3
-//         const fileContent = fs.readFileSync(tempFilePath);
-  
-//         const params = {
-//           Bucket: 'n11428911-assessment2',
-//           Key: `uploads/${uniqueFileName}`,
-//           Body: fileContent,
-//           ContentType: file.mimetype,
-//         };
-  
-//         s3.upload(params, async (s3Err, data) => {
-//           // delete the temporary file
-//           fs.unlinkSync(tempFilePath);
-  
-//           if (s3Err) {
-//             console.error(s3Err);
-//             return res.status(500).send("Failed to upload file to S3: " + s3Err.message);
-//           }
-  
-//           // Insert video data into database
-//           req.db.run(
-//             "INSERT INTO videos(fileName, fileExtension, fileSize, uploadPath, userName, shortFileName, duration, bitrate, resolution) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-//             [
-//               uniqueFileName,
-//               fileExtension,
-//               fileSize,
-//               data.Location, // S3 URL
-//               req.user.username,
-//               fileNameWithoutExtension,
-//               duration,
-//               bitrate,
-//               resolution,
-//             ],
-//             async function (dbErr) {
-//               if (dbErr) {
-//                 return res.status(500).send("Failed to insert video data into database: " + dbErr.message);
-//               }
-  
-//               try {
-//                 const relatedVideos = await searchYouTube(fileNameWithoutExtension, 10);
-//                 res.json({
-//                   message: 'Upload successful',
-//                   fileName: fullFileName,
-//                   s3Url: data.Location,
-//                   relatedVideos: relatedVideos,
-//                 });
-//               } catch (error) {
-//                 res.status(500).send(error.message);
-//                 console.error(error);
-//               }
-//             }
-//           );
-//         });
-//       });
-//     } catch (uploadError) {
-//       console.error(uploadError);
-//       res.status(500).send("Failed to upload video: " + uploadError.message);
-//     }
-// });
+router.post("/upload", auth.authenticateCookie, async (req, res) => {
+    const file = req.files.uploadFile;
+    const fullFileName = file.name;
+    const fileExtension = fullFileName.split('.').pop();
+    const fileNameWithoutExtension = fullFileName.replace(/\.[^/.]+$/, "");
+    const fileSize = file.size;
+
+    // name the file with a unique name
+    const uniqueFileName = `${Date.now()}-${fullFileName}`;
+    const tempFilePath = path.join(__dirname, "../temp", uniqueFileName);
+
+    try {
+        if (!fs.existsSync(path.join(__dirname, "../temp"))) {
+            fs.mkdirSync(path.join(__dirname, "../temp"));
+        }
+
+        // temporarily save the file
+        await file.mv(tempFilePath);
+
+        // Analyze video metadata
+        ffmpeg.ffprobe(tempFilePath, async (err, metadata) => {
+            if (err) {
+                console.error(err);
+                fs.unlinkSync(tempFilePath); // delete the temporary file
+                return res.status(500).send("Failed to extract video metadata: " + err.message);
+            }
+
+            const duration = metadata.format.duration;
+            const bitrate = metadata.format.bit_rate;
+            const resolution = metadata.streams[0].width + 'x' + metadata.streams[0].height;
+
+            // Upload the file to S3
+            const fileContent = fs.readFileSync(tempFilePath);
+
+            const params = {
+                Bucket: 'n11428911-assessment2',
+                Key: `uploads/${uniqueFileName}`,
+                Body: fileContent,
+                ContentType: file.mimetype,
+            };
+
+            try {
+                const data = await s3Client.send(new PutObjectCommand(params));
+                
+                // delete the temporary file
+                fs.unlinkSync(tempFilePath);
+
+                // Insert video data into database
+                req.db.run(
+                    "INSERT INTO videos(fileName, fileExtension, fileSize, uploadPath, userName, shortFileName, duration, bitrate, resolution) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    [
+                        uniqueFileName,
+                        fileExtension,
+                        fileSize,
+                        `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`, // S3 URL
+                        req.user.username,
+                        fileNameWithoutExtension,
+                        duration,
+                        bitrate,
+                        resolution,
+                    ],
+                    async function (dbErr) {
+                        if (dbErr) {
+                            return res.status(500).send("Failed to insert video data into database: " + dbErr.message);
+                        }
+
+                        try {
+                            const relatedVideos = await searchYouTube(fileNameWithoutExtension, 10);
+                            res.json({
+                                message: 'Upload successful',
+                                fileName: fullFileName,
+                                s3Url: `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`,
+                                relatedVideos: relatedVideos,
+                            });
+                        } catch (error) {
+                            res.status(500).send(error.message);
+                            console.error(error);
+                        }
+                    }
+                );
+            } catch (s3Err) {
+                console.error(s3Err);
+                return res.status(500).send("Failed to upload file to S3: " + s3Err.message);
+            }
+        });
+    } catch (uploadError) {
+        console.error(uploadError);
+        res.status(500).send("Failed to upload video: " + uploadError.message);
+    }
+});
 //jerry
+
+router.get('/api', (req, res) => {
+    res.json({ message: 'Hello from backend' });
+  });
 
 router.post('/transcode/:id', auth.authenticateCookie, (req, res) => {
     const videoId = req.params.id;
@@ -446,7 +453,6 @@ router.get('/generate-upload-url', auth.authenticateCookie, async (req, res) => 
     Bucket: bucketName,
     Key: key,
     ContentType: fileType,
-    ACL: 'private', // set the file to private
   };
 
   const command = new PutObjectCommand(params);
@@ -488,6 +494,7 @@ router.get('/generate-download-url', auth.authenticateCookie, async (req, res) =
 });
 
 router.post('/upload-complete', auth.authenticateCookie, async (req, res) => {
+    
     const { key, userName } = req.body;
   
     if (!key || !userName) {
@@ -498,8 +505,14 @@ router.post('/upload-complete', auth.authenticateCookie, async (req, res) => {
     const uploadPath = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
   
     try {
-      // download the file to analyze metadata
-      const tempFilePath = path.join(__dirname, '../temp', key.split('/').pop());
+      // Ensure the temp directory exists
+      const tempDir = path.join(__dirname, '../temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      // Download the file to analyze metadata
+      const tempFilePath = path.join(tempDir, path.basename(key));
   
       const getObjectParams = {
         Bucket: bucketName,
@@ -510,14 +523,20 @@ router.post('/upload-complete', auth.authenticateCookie, async (req, res) => {
       const url = await getSignedUrl(s3Client, command, { expiresIn: 60 });
   
       const response = await fetch(url);
-      const fileStream = fs.createWriteStream(tempFilePath);
-      await new Promise((resolve, reject) => {
-        response.body.pipe(fileStream);
-        response.body.on('error', reject);
-        fileStream.on('finish', resolve);
-      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch the file: ${response.statusText}`);
+      }
   
-      // analyze video metadata
+      // Convert the response body to a buffer
+      // Replace response.buffer() with response.arrayBuffer() and convert to Buffer
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      // Write the buffer to the temporary file
+      fs.writeFileSync(tempFilePath, buffer);
+  
+      // Analyze video metadata
       const metadata = await new Promise((resolve, reject) => {
         ffmpeg.ffprobe(tempFilePath, (err, data) => {
           if (err) return reject(err);
@@ -532,14 +551,14 @@ router.post('/upload-complete', auth.authenticateCookie, async (req, res) => {
       const fileExtension = key.split('.').pop();
       const fileNameWithoutExtension = key.replace(/\.[^/.]+$/, "");
   
-      // delete the temporary file
+      // Delete the temporary file
       fs.unlinkSync(tempFilePath);
   
-      // insert video data into database
+      // Insert video data into database
       req.db.run(
         "INSERT INTO videos(fileName, fileExtension, fileSize, uploadPath, userName, shortFileName, duration, bitrate, resolution) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
-          key.split('/').pop(),
+          path.basename(key),
           fileExtension,
           fileSize,
           uploadPath,
@@ -558,7 +577,7 @@ router.post('/upload-complete', auth.authenticateCookie, async (req, res) => {
             const relatedVideos = await searchYouTube(fileNameWithoutExtension, 10);
             res.json({
               message: 'Upload and processing successful',
-              fileName: key.split('/').pop(),
+              fileName: path.basename(key),
               s3Url: uploadPath,
               relatedVideos: relatedVideos,
             });
