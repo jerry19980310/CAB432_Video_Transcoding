@@ -4,7 +4,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const router = express.Router();
 const auth = require("../auth.js");
-const { SignUpCommand } = require("@aws-sdk/client-cognito-identity-provider");
+const { SignUpCommand, AdminAddUserToGroupCommand } = require("@aws-sdk/client-cognito-identity-provider");
 const cognitoClient = require("../public/cognito"); // Path to your AWS config
 
 const CLIENT_ID = process.env.COGNITO_CLIENT_ID; // Your Cognito App Client ID
@@ -39,6 +39,17 @@ router.post("/signup", async (req, res) => {
     const command = new SignUpCommand(params);
     const response = await cognitoClient.send(command);
     console.log("Cognito response:", response);
+
+    //do mot have permission to add user to group
+    // const addToGroupParams = {
+    //   UserPoolId: process.env.COGNITO_USER_POOL_ID,
+    //   Username: username,
+    //   GroupName: 'user', // The group you want to assign the user to
+    // };
+
+    // const addToGroupCommand = new AdminAddUserToGroupCommand(addToGroupParams);
+    // await cognitoClient.send(addToGroupCommand);
+    // console.log(`User ${username} added to group 'user'.`);
 
     // 將使用者資料插入到 MySQL 資料庫
     const db = req.db; // 使用已附加到 req 的資料庫連接
