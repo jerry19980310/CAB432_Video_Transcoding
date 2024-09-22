@@ -12,51 +12,10 @@ const CLIENT_ID = process.env.COGNITO_CLIENT_ID; // Your Cognito App Client ID
 
 const saltRounds = 10; // Salt rounds for hashing passwords
 
-// Sign-up route
-// router.post("/signup", (req, res) => {
-//   const { username, email, password } = req.body;
-
-//   if (!username || !email || !password) {
-//     return res.status(400).json({ success: false, message: "All fields are required." });
-//   }
-
-//   // Check if user already exists in the database
-//   req.db.get("SELECT * FROM users WHERE username = ? OR email = ?", [username, email], (err, row) => {
-//     if (err) {
-//       return res.status(500).json({ success: false, message: "Database error: " + err.message });
-//     }
-
-//     if (row) {
-//       // User already exists
-//       return res.status(400).json({ success: false, message: "User already exists" });
-//     }
-
-//     // Hash the password before saving
-//     bcrypt.hash(password, saltRounds, (err, hash) => {
-//       if (err) {
-//         return res.status(500).json({ success: false, message: "Error hashing password: " + err.message });
-//       }
-
-//       // Insert new user into the database
-//       req.db.run(
-//         "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-//         [username, email, hash],
-//         (err) => {
-//           if (err) {
-//             console.log(err.message);
-//             return res.status(500).json({ success: false, message: "Error inserting user into the database: " + err.message });
-//           }
-//           res.status(201).json({ success: true, message: "User registered successfully" });
-//         }
-//       );
-//     });
-//   });
-// });
-
 router.post("/signup", async (req, res) => {
   const { username, email, password } = req.body;
 
-  // Validate input fields
+  // 驗證輸入欄位
   if (!username || !email || !password) {
     return res
       .status(400)
@@ -76,42 +35,40 @@ router.post("/signup", async (req, res) => {
   };
 
   try {
+    // 使用 Cognito 的 SignUpCommand 註冊用戶
     const command = new SignUpCommand(params);
     const response = await cognitoClient.send(command);
-    console.log(res);
+    console.log("Cognito response:", response);
 
-    // 如果需要自動確認使用者，可以在這裡呼叫 AdminConfirmSignUpCommand
-    // 但這需要使用具有管理權限的 AWS 憑證
-
-    // 將使用者資料插入到您的資料庫
-    const { db } = req; // 假設您使用中介軟體將 db 附加到 req
+    // 將使用者資料插入到 MySQL 資料庫
+    const db = req.db; // 使用已附加到 req 的資料庫連接
 
     // 在將密碼存入資料庫之前，確保您不存儲明文密碼
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    db.run(
-      "INSERT INTO users (username, email, password, cognito_user_id) VALUES (?, ?, ?, ?)",
-      [username, email, hashedPassword, response.UserSub],
-      (err) => {
-        if (err) {
-          console.error("Error inserting user into the database:", err.message);
-          return res.status(500).json({
-            success: false,
-            message: "Error saving user to the database.",
-          });
-        }
+    // 使用 MySQL 的預處理語句插入用戶資料
+    const insertQuery = `
+      INSERT INTO users (username, email, password, cognito_user_id)
+      VALUES (?, ?, ?, ?)
+    `;
 
-        return res.status(201).json({
-          success: true,
-          message: "User registered successfully. Please verify your email.",
-          data: {
-            user: response.UserSub, // Cognito User ID
-          },
-        });
-      }
-    );
+    const [result] = await db.execute(insertQuery, [
+      username,
+      email,
+      hashedPassword,
+      response.UserSub, // Cognito User ID
+    ]);
+
+    // 返回成功響應
+    return res.status(201).json({
+      success: true,
+      message: "User registered successfully. Please verify your email.",
+      data: {
+        user: response.UserSub, // Cognito User ID
+      },
+    });
   } catch (error) {
-    // Handle specific Cognito errors
+    // 處理特定的 Cognito 錯誤
     if (error.name === "UsernameExistsException") {
       return res
         .status(400)
@@ -126,9 +83,13 @@ router.post("/signup", async (req, res) => {
       return res
         .status(400)
         .json({ success: false, message: error.message });
+    } else if (error.code === 'ER_DUP_ENTRY') { // MySQL 重複鍵錯誤
+      return res
+        .status(400)
+        .json({ success: false, message: "Email already exists." });
     } else {
-      // Generic error handler
-      console.error("Cognito Signup Error:", error);
+      // 通用錯誤處理
+      console.error("Signup Error:", error);
       return res.status(500).json({
         success: false,
         message: "An error occurred during signup. Please try again later.",
@@ -137,101 +98,95 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-// Login route
-router.post("/login", (req, res) => {
-  const { username, password } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ success: false, message: "All fields are required." });
-  }
+// router.post("/signup", async (req, res) => {
+//   const { username, email, password } = req.body;
 
-  // Fetch the user from the database
-  req.db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
-    if (err) {
-      return res.status(500).json({ success: false, message: "Database error: " + err.message });
-    }
+//   // Validate input fields
+//   if (!username || !email || !password) {
+//     return res
+//       .status(400)
+//       .json({ success: false, message: "All fields are required." });
+//   }
 
-    if (!row) {
-      // User does not exist
-      return res.status(403).json({ success: false, message: "Invalid credentials" });
-    }
+//   const params = {
+//     ClientId: CLIENT_ID,
+//     Username: username,
+//     Password: password,
+//     UserAttributes: [
+//       {
+//         Name: "email",
+//         Value: email,
+//       }
+//     ],
+//   };
 
-    // Compare hashed password
-    bcrypt.compare(password, row.password, (err, isMatch) => {
-      if (err) {
-        return res.status(500).json({ success: false, message: "Error comparing passwords: " + err.message });
-      }
+//   try {
+//     const command = new SignUpCommand(params);
+//     const response = await cognitoClient.send(command);
+//     console.log(res);
 
-      if (!isMatch) {
-        return res.status(403).json({ success: false, message: "Invalid credentials" });
-      }
+//     // 如果需要自動確認使用者，可以在這裡呼叫 AdminConfirmSignUpCommand
+//     // 但這需要使用具有管理權限的 AWS 憑證
 
-      // Generate JWT token
-      const token = auth.generateAccessToken(username);
-      res.json({ success: true, authToken: token });
-    });
-  });
-});
+//     // 將使用者資料插入到您的資料庫
+//     const { db } = req; // 假設您使用中介軟體將 db 附加到 req
 
-// Route to get all videos with uploadPath
-router.get('/videos/:username', auth.authenticateToken, (req, res) => {
-   req.db.all("SELECT id, filename, uploadPath FROM videos WHERE userName=?", [req.user.username], (err, rows) => {
-       if (err) {
-           res.status(500).send("Error fetching videos from database: " + err.message);
-           return;
-       }
+//     // 在將密碼存入資料庫之前，確保您不存儲明文密碼
+//     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-       const videos = rows.map(row => ({
-           id: row.id,
-           fileName: row.fileName,
-           uploadPath: row.uploadPath
-       }));
-       res.json(videos);
-   });
-});
+//     db.run(
+//       "INSERT INTO users (username, email, password, cognito_user_id) VALUES (?, ?, ?, ?)",
+//       [username, email, hashedPassword, response.UserSub],
+//       (err) => {
+//         if (err) {
+//           console.error("Error inserting user into the database:", err.message);
+//           return res.status(500).json({
+//             success: false,
+//             message: "Error saving user to the database.",
+//           });
+//         }
 
-// Route for transcoding video
-router.post('/transcode/:id', auth.authenticateToken, (req, res) => {
-   const id = req.params.id;
-   req.db.get(`SELECT filename FROM videos WHERE id=?`, [id], (err, row) => {
-       if (err) {
-           res.status(500).send(err.message);
-       } else if (row) {
-           const outputPath = row.filename.replace('.mp4', '-converted.mp4');
-           
-           // Transcode video
-           ffmpeg(row.filename)
-               .output(outputPath)
-               .outputOptions('-c:v libx264') // example option
-               .toFormat('mp4')
-               .on('end', () => {
-                   console.log('File has been converted.');
-                   res.send(`File converted and saved at ${outputPath}`);
-               })
-               .on('error', (err) => {
-                   console.error('Error during conversion:', err);
-                   res.status(500).send('Error during conversion');
-               })
-               .run();
-       } else {
-           res.status(404).send('Original file not found');
-       }
-   });
-});
+//         return res.status(201).json({
+//           success: true,
+//           message: "User registered successfully. Please verify your email.",
+//           data: {
+//             user: response.UserSub, // Cognito User ID
+//           },
+//         });
+//       }
+//     );
+//   } catch (error) {
+//     // Handle specific Cognito errors
+//     if (error.name === "UsernameExistsException") {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Username already exists." });
+//     } else if (error.name === "InvalidPasswordException") {
+//       return res.status(400).json({
+//         success: false,
+//         message:
+//           "Password does not meet the security requirements. Please choose a stronger password.",
+//       });
+//     } else if (error.name === "InvalidParameterException") {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: error.message });
+//     } else {
+//       // Generic error handler
+//       console.error("Cognito Signup Error:", error);
+//       return res.status(500).json({
+//         success: false,
+//         message: "An error occurred during signup. Please try again later.",
+//       });
+//     }
+//   }
+// });
 
-// Route to download video
-router.get('/download/:id', auth.authenticateToken, (req, res) => {
-   const id = req.params.id;
-   req.db.get(`SELECT filename FROM videos WHERE id=?`, [id], (err, row) => {
-       if (err) {
-           res.status(500).send(err.message);
-       } else if (row) {
-           res.download(row.filename);
-       } else {
-           res.status(404).send('File not found');
-       }
-   });
-});
+
+
+
+
 
 
 module.exports = router;
