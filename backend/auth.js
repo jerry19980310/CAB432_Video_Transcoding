@@ -46,6 +46,8 @@ const authenticateCookie = (req, res, next) => {
         console.log('Decoded JWT:', decoded.iss);
 
         req.user = decoded['cognito:username'] ; // 將用戶信息附加到請求對象
+        group = decoded['cognito:groups'];
+        req.group = group[0];
         const username = decoded['cognito:username'] 
         console.log(`authTokencook verified for user: ${username} at URL ${req.url}`);
         next();

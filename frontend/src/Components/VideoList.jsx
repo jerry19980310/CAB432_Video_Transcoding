@@ -201,9 +201,155 @@ function VideoList() {
     navigate('/login');
   };
 
-  const handleAction = (action, videoId) => {
-    console.log(`${action} video with id: ${videoId}`);
-    // Implement action logic here
+  const handleAction = async (action, fileName) => {
+    const token = getTokenFromCookies();
+
+    try {
+      switch (action) {
+        case 'delete':
+          await handleDelete(fileName, token);
+          break;
+        case 'rename':
+          await handleRename(fileName, token);
+          break;
+        case 'download':
+          await handleDownload(fileName, token);
+          break;
+        case 'transcode':
+          await handleTranscode(fileName, token);
+          break;
+        default:
+          console.error(`Unknown action: ${action}`);
+      }
+    } catch (error) {
+      console.error(`Error performing ${action}:`, error);
+      alert(`Failed to ${action} the video. Please try again.`);
+    }
+  };
+
+  const handleDelete = async (videoId, token) => {
+    // confirm before deleting
+    const isConfirmed = window.confirm('Are you sure you want to delete this video?');
+    if (!isConfirmed) return;
+  
+    try {
+      // send a DELETE request to the server
+      const response = await fetch(`${apiUrl}/delete/${videoId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        alert(data.message || 'Video deleted successfully.');
+        fetchVideos();
+      } else {
+        // handle the error
+        alert(data.message || 'Failed to delete video.');
+      }
+    } catch (error) {
+      // handle network errors or other errors
+      console.error('Error deleting video:', error);
+      alert('An error occurred while deleting the video. Please try again later.');
+    }
+  };
+
+  const handleRename = async (videoId, token) => {
+    // Prompt the user for the new video name
+    const newName = window.prompt('Enter the new name for the video:');
+    if (!newName) return;
+  
+    try {
+      // Send a PUT request to the server to rename the video
+      const response = await fetch(`${apiUrl}/rename/${videoId}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ newName }),
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        // Show success message and refresh the video list
+        alert(data.message || 'Video renamed successfully.');
+        fetchVideos();
+      } else {
+        // Handle server-side errors
+        alert(data.message || 'Failed to rename video.');
+      }
+    } catch (error) {
+      // Handle network errors or other unexpected errors
+      console.error('Error renaming video:', error);
+      alert('An error occurred while renaming the video. Please try again later.');
+    }
+  };
+
+  const handleDownload = async (fileName, token) => {
+    try {
+      console.log('fileName:', fileName);
+      const response = await fetch(
+        `${apiUrl}/generate-download-url?key=uploads/${encodeURIComponent(fileName)}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: 'include',
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to generate download URL.');
+      }
+
+      const data = await response.json();
+      const downloadUrl = data.url;
+
+      // Create a temporary link to trigger the download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName.split('/').pop(); // Extract the file name
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const handleTranscode = async (videoId, token) => {
+    const targetFormat = window.prompt('Enter the target format (e.g., mp4, avi):', 'mp4');
+    if (!targetFormat) return;
+
+    const resolution = window.prompt('Enter the desired resolution (e.g., 1280x720):', '1280x720');
+    if (!resolution) return;
+
+    const response = await fetch(`${apiUrl}/transcode/${videoId}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ format: targetFormat, resolution }),
+    });
+
+    if (response.ok) {
+      alert('Transcoding started successfully.');
+      // Optionally, you can implement progress tracking here
+    } else {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to transcode video.');
+    }
   };
 
   return (
@@ -246,7 +392,7 @@ function VideoList() {
                           <TranscodeIcon />
                         </button>
                         <button 
-                          onClick={() => handleAction('download', video.id)} 
+                          onClick={() => handleAction('download', video.fileName)} 
                           style={{ padding: '0.5rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}
                           aria-label="Download video"
                         >
