@@ -197,28 +197,28 @@ router.get('/videos', auth.authenticateCookie, (req, res) => {
     }
  });
 
-router.get('/progress/:id', (req, res) => {
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive'
-    });
- 
-    const videoId = req.params.id;
-    const sendProgress = (progress) => {
-        res.write(`data: ${JSON.stringify({ progress })}\n\n`);
-    };
- 
-    // Set up a listener for progress updates
-    const listener = progress => sendProgress(progress);
-    ffmpegEmitter.on(videoId, listener);
- 
-    // Remove listener when client closes connection
-    req.on('close', () => {
-        ffmpegEmitter.removeListener(videoId, listener);
-        res.end();
-    });
- });
+ router.get('/progress/:id', (req, res) => {
+  const videoId = req.params.id;
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+
+  const sendProgress = (progress) => {
+    res.write(`data: ${JSON.stringify({ progress })}\n\n`);
+  };
+
+  // Assume you have an event emitter that emits progress updates
+  const listener = (progress) => sendProgress(progress);
+  ffmpegEmitter.on(videoId, listener);
+
+  req.on('close', () => {
+    ffmpegEmitter.removeListener(videoId, listener);
+    res.end();
+  });
+});
 
  
  // Test route to simulate loading
