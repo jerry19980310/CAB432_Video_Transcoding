@@ -375,11 +375,7 @@ function VideoList() {
               <tbody>
                 {videos.map((video) => (
                   <tr key={video.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                    <td style={{ padding: '0.75rem 0' }}>
-                      <a href={`/videoactions/${video.fileName}`} target="_blank" rel="noreferrer" style={{ color: '#4f46e5', textDecoration: 'none' }}>
-                        {video.fileName}
-                      </a>
-                    </td>
+                    <td style={{ padding: '0.75rem 0', color: '#4f46e5', textDecoration: 'none' }}>{video.fileName}</td>
                     <td style={{ padding: '0.75rem 0' }}>{video.fileSize} bytes</td>
                     <td style={{ padding: '0.75rem 0' }}>{video.fileExtension}</td>
                     <td style={{ padding: '0.75rem 0' }}>{new Date(video.uploadTime).toLocaleString()}</td>
