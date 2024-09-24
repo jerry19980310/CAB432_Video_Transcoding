@@ -5,7 +5,6 @@ import SignUp from './Components/SignUp';
 import ConfirmEmail from './Components/ConfirmEmail';
 import Confirm from './Components/Confirm';
 import VideoList from './Components/VideoList';
-import VideoActions from './Components/VideoActions';
 import UploadForm from './Components/UploadForm';
 import UploadSuccess from './Components/UploadSuccess';
 
@@ -42,7 +41,6 @@ const App = () => {
           } 
         />
         <Route path="/videolist" element={<VideoList />} />
-        <Route path="/videoactions/:id" element={<VideoActions />} />
         <Route path="/uploadsuccess" element={<UploadSuccess />} />
       </Routes>
     </Router>

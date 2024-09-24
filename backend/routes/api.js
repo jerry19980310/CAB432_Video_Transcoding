@@ -1,19 +1,18 @@
-const Cognito = require("@aws-sdk/client-cognito-identity-provider");
-
 const express = require("express");
 const bcrypt = require("bcrypt");
 const router = express.Router();
 const auth = require("../auth.js");
-const { SignUpCommand, AdminAddUserToGroupCommand } = require("@aws-sdk/client-cognito-identity-provider");
-const cognitoClient = require("../public/cognito"); // Path to your AWS config
-
-const CLIENT_ID = process.env.COGNITO_CLIENT_ID; // Your Cognito App Client ID
+const { getAwsSecret }= require('../public/awsSecret.js');
+const { SignUpCommand } = require("@aws-sdk/client-cognito-identity-provider");
+const initializeCognitoClient = require("../public/cognito");
 
 
 const saltRounds = 10; // Salt rounds for hashing passwords
 
 router.post("/signup", async (req, res) => {
+  const secrets = await getAwsSecret();
   const { username, email, password } = req.body;
+  const cognitoClient = await initializeCognitoClient();
 
   // 驗證輸入欄位
   if (!username || !email || !password) {
@@ -23,7 +22,7 @@ router.post("/signup", async (req, res) => {
   }
 
   const params = {
-    ClientId: CLIENT_ID,
+    ClientId: secrets.COGNITO_CLIENT_ID,
     Username: username,
     Password: password,
     UserAttributes: [

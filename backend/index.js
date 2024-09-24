@@ -3,19 +3,51 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const fileUpload = require("express-fileupload");
 const path = require("path");
+const { getAwsSecret } = require("./public/awsSecret");
+const { getAwsParameter } = require("./public/awsParameter");
 require('dotenv').config();
 const cors = require("cors"); 
 const initializeDatabaseAndPool = require("./db"); // 引入初始化函數
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = getAwsSecret().PORT || 3001;
+
+
 
 // Enable CORS if your frontend runs on a different domain or port
-app.use(cors({
-    origin: process.env.CLIENT_URL,
-    methods: ['GET', 'POST', 'DELETE', 'PUT'],
-    credentials: true
-}));
+async function setupCors() {
+    // Wait for the promise to resolve and assign the resolved value to clientUrl
+    const clientUrl = await getAwsParameter();
+  
+    // Now clientUrl is guaranteed to have the resolved value, and you can proceed
+    console.log(clientUrl); // This will print the actual value, not a pending promise
+  
+    const allowedOrigins = [
+      process.env.CLIENT_URL,
+      clientUrl, // clientUrl now has the resolved value from getAwsParameter
+      process.env.CLIENT_URL2
+    ];
+  
+    // Configure CORS middleware
+    app.use(cors({
+      origin: function (origin, callback) {
+        if (!origin) return callback(null, true); // Allow requests with no origin (e.g., Postman)
+        
+        if (allowedOrigins.includes(origin)) {
+          callback(null, true); // Allow the request
+        } else {
+          callback(new Error('Not allowed by CORS')); // Reject the request
+        }
+      },
+      methods: ['GET', 'POST', 'DELETE', 'PUT'],
+      credentials: true
+    }));
+  
+    // Any other logic that needs to happen after clientUrl is set
+}
+  
+// Call the function to set up CORS
+setupCors();
 
 app.use(express.json());
 app.use(cookieParser());

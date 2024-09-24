@@ -9,18 +9,16 @@ const ffmpegEmitter = new EventEmitter();
 const fs = require('fs');
 const { searchYouTube } = require("../functions/googleAPI.js");
 const CP = require("node:child_process");
-const { s3Client } = require('../public/config.js');
-const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const initializeS3Client = require('../public/config');
+const { getAwsSecret }= require('../public/awsSecret.js');
+const { PutObjectCommand, GetObjectCommand, DeleteObjectCommand, CopyObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const fetch = require('node-fetch');
 const { InitiateAuthCommand } = require("@aws-sdk/client-cognito-identity-provider");
-const cognitoClient = require("../public/cognito"); // Path to your AWS config
+const initializeCognitoClient = require("../public/cognito");
 const tmp = require('tmp');
 const axios = require('axios');
 
-
-const CLIENT_ID = process.env.COGNITO_CLIENT_ID; 
-const JWT_SECRET = process.env.JWT_SECRET ; 
 
 
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -29,11 +27,15 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
+  const cognitoClient = await initializeCognitoClient();
 
   // 驗證輸入欄位
   if (!username || !password) {
     return res.status(400).json({ success: false, message: "All fields are required." });
   }
+
+  const awsSecret = await getAwsSecret();
+  const CLIENT_ID = awsSecret.COGNITO_CLIENT_ID;
 
   const params = {
     AuthFlow: "USER_PASSWORD_AUTH", // 使用者名稱與密碼認證流程
@@ -99,69 +101,7 @@ router.get("/logout", auth.authenticateCookie, (req, res) => {
    res.redirect("/login");
 });
 
-/*
-//fetching videos
-router.get('/videos', auth.authenticateCookie, (req, res) => {
-    console.log("Fetching videos for user:", req.user);
-  // console.log(req);
-    // Check if the user is an admin
-    if (req.user.admin) {
-        console.log("1");
-        // Admin user: fetch all videos
-        req.db.all("SELECT * FROM videos", (err, rows) => {
-            if (err) {
-                console.log("Error fetching videos for admin:", err.message);
-                console.log("2");
-                return res.status(500).send("Error fetching videos from database: " + err.message);
-            }
- 
-            const videos = rows.map(row => ({
-                id: row.id,
-                fileName: row.fileName,
-                uploadPath: row.uploadPath,
-                shortFileName: row.shortFileName,
-                fileExtension: row.fileExtension,
-                fileSize: row.fileSize,
-                uploadTime: row.uploadTime,
-                userName: row.userName
-            }));
- 
-            // Return the videos as a JSON response
-            console.log("3");
-            return res.json(videos); // Ensure a return to avoid continuing the execution
-        });
-    } else {
-        // Non-admin user: fetch videos for the specified username
-        req.db.all("SELECT * FROM videos WHERE userName=?", [req.user], (err, rows) => {
-            console.log("4");
-            console.log(req.user);
-            if (err) {
-                console.log("Error fetching videos for user:", err.message);
-                console.log("5");
-                return res.status(500).send("Error fetching videos from database: " + err.message);
-            }
-            console.log("6");
-            console.log(rows);
- 
-            const videos = rows.map(row => ({
-                id: row.id,
-                fileName: row.fileName,
-                uploadPath: row.uploadPath,
-                shortFileName: row.shortFileName,
-                fileExtension: row.fileExtension,
-                fileSize: row.fileSize,
-                uploadTime: row.uploadTime,
-                userName: row.userName
-            }));
-            console.log("7");
-            console.log(videos);
- 
-            // Return the videos as a JSON response
-            return res.json(videos); // Ensure a return here as well
-        });
-    }
- });
-*/
+
  router.get('/videos', auth.authenticateCookie, async (req, res) => {
   console.log("Fetching videos for user:", req.user);
   console.log("Fetching videos for group:", req.group);
@@ -218,20 +158,6 @@ router.get('/progress/:id', (req, res) => {
         res.end();
     });
  });
-
- // Route to download video
-router.get('/download/:id', auth.authenticateCookie, (req, res) => {
-    const id = req.params.id;
-    req.db.get(`SELECT uploadPath FROM videos WHERE id=?`, [id], (err, row) => {
-        if (err) {
-            res.status(500).send(err.message);
-        } else if (row) {
-            res.download(row.uploadPath);
-        } else {
-            res.status(404).send('File not found');
-        }
-    });
- });
  
  // Test route to simulate loading
  router.get('/test', (req, res) => {
@@ -241,176 +167,26 @@ router.get('/download/:id', auth.authenticateCookie, (req, res) => {
  });
 
 
-// router.post("/upload", auth.authenticateCookie, async (req, res) => {
-//     const file = req.files.uploadFile;
-//     const fullFileName = file.name;
-//     const fileExtension = fullFileName.split('.').pop();
-//     const fileNameWithoutExtension = fullFileName.replace(/\.[^/.]+$/, "");
-//     const fileSize = file.size;
-
-//     // name the file with a unique name
-//     const uniqueFileName = `${Date.now()}-${fullFileName}`;
-//     const tempFilePath = path.join(__dirname, "../temp", uniqueFileName);
-
-//     try {
-//         if (!fs.existsSync(path.join(__dirname, "../temp"))) {
-//             fs.mkdirSync(path.join(__dirname, "../temp"));
-//         }
-
-//         // temporarily save the file
-//         await file.mv(tempFilePath);
-
-//         // Analyze video metadata
-//         ffmpeg.ffprobe(tempFilePath, async (err, metadata) => {
-//             if (err) {
-//                 console.error(err);
-//                 fs.unlinkSync(tempFilePath); // delete the temporary file
-//                 return res.status(500).send("Failed to extract video metadata: " + err.message);
-//             }
-
-//             const duration = metadata.format.duration;
-//             const bitrate = metadata.format.bit_rate;
-//             const resolution = metadata.streams[0].width + 'x' + metadata.streams[0].height;
-
-//             // Upload the file to S3
-//             const fileContent = fs.readFileSync(tempFilePath);
-
-//             const params = {
-//                 Bucket: 'n11428911-assessment2',
-//                 Key: `uploads/${uniqueFileName}`,
-//                 Body: fileContent,
-//                 ContentType: file.mimetype,
-//             };
-
-//             try {
-//                 const data = await s3Client.send(new PutObjectCommand(params));
-                
-//                 // delete the temporary file
-//                 fs.unlinkSync(tempFilePath);
-
-//                 // Insert video data into database
-//                 req.db.run(
-//                     "INSERT INTO videos(fileName, fileExtension, fileSize, uploadPath, userName, shortFileName, duration, bitrate, resolution) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-//                     [
-//                         uniqueFileName,
-//                         fileExtension,
-//                         fileSize,
-//                         `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`, // S3 URL
-//                         req.user.username,
-//                         fileNameWithoutExtension,
-//                         duration,
-//                         bitrate,
-//                         resolution,
-//                     ],
-//                     async function (dbErr) {
-//                         if (dbErr) {
-//                             return res.status(500).send("Failed to insert video data into database: " + dbErr.message);
-//                         }
-
-//                         try {
-//                             const relatedVideos = await searchYouTube(fileNameWithoutExtension, 10);
-//                             res.json({
-//                                 message: 'Upload successful',
-//                                 fileName: fullFileName,
-//                                 s3Url: `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`,
-//                                 relatedVideos: relatedVideos,
-//                             });
-//                         } catch (error) {
-//                             res.status(500).send(error.message);
-//                             console.error(error);
-//                         }
-//                     }
-//                 );
-//             } catch (s3Err) {
-//                 console.error(s3Err);
-//                 return res.status(500).send("Failed to upload file to S3: " + s3Err.message);
-//             }
-//         });
-//     } catch (uploadError) {
-//         console.error(uploadError);
-//         res.status(500).send("Failed to upload video: " + uploadError.message);
-//     }
-// });
-
-
 router.get('/api', (req, res) => {
     res.json({ message: 'Hello from backend' });
   });
-
-// router.post('/transcode/:id', auth.authenticateCookie, (req, res) => {
-//     const videoId = req.params.id;
-//     const targetFormat = req.body.format || 'mp4';
-//     const resolution = req.body.resolution || '1280x720';
-
-//     req.db.get("SELECT * FROM videos WHERE id=?", [videoId], (err, row) => {
-//         if (err) {
-//             console.error("Database query error: " + err.message);
-//             return res.status(500).send("Database query error: " + err.message);
-//         }
-//         if (!row) {
-//             return res.status(404).send("Video not found");
-//         }
-
-//         const sourcePath = row.uploadPath;
-//         const outputPath = sourcePath.replace(/\.[^/.]+$/, `.${targetFormat}`);
-//         const fileName = row.shortFileName;
-
-//         ffmpeg(sourcePath)
-//             .output(outputPath)
-//             .size(resolution)
-//             .videoCodec('libx264')
-//             .audioCodec('aac')
-//             .on('progress', (progress) => {
-//                 // Emit progress update
-//                 ffmpegEmitter.emit(videoId, Math.floor(progress.percent));
-//                 console.log(`Progress: ${progress.percent}%`);
-//             })
-//             .on('end', () => {
-//                console.log('Transcoding succeeded.');
-//                fs.stat(outputPath, (fsErr, stats) => {
-//                   if (fsErr) {
-//                       console.error("File system error: " + fsErr.message);
-//                       return res.status(500).send("File system error: " + fsErr.message);
-//                   }
-
-//                   const fileSize = stats.size; // size in bytes
-//                   req.db.run("UPDATE videos SET fileName = ?, uploadPath = ?, fileExtension = ?, resolution = ?, fileSize = ? WHERE id = ?", [fileName+'.'+targetFormat, outputPath, targetFormat, resolution, fileSize, videoId], (updateErr) => {
-//                       if (updateErr) {
-//                           console.error("Failed to update video data in database: " + updateErr.message);
-//                           return res.status(500).send("Failed to update video data in database: " + updateErr.message);
-//                       }
-//                       ffmpegEmitter.emit(videoId, 100); // Ensure 100% progress is sent
-//                       res.send({ message: 'Transcoding succeeded', file: outputPath, size: fileSize });
-//                   });
-//               });
-//             })
-//             .on('error', (transcodeErr) => {
-//                 console.error('Transcoding failed: ' + transcodeErr.message);
-//                 res.status(500).send('Transcoding failed: ' + transcodeErr.message);
-//             })
-//             .run();
-//     });
-// });
 
 router.post('/transcode/:id', auth.authenticateCookie, async (req, res) => {
   const videoId = req.params.id;
   const targetFormat = req.body.format || 'mp4';
   const resolution = req.body.resolution || '1280x720';
+  const secret = await getAwsSecret();
 
   try {
       // 從數據庫獲取視頻信息
-      const row = await new Promise((resolve, reject) => {
-          req.db.get("SELECT * FROM videos WHERE id=?", [videoId], (err, row) => {
-              if (err) return reject(err);
-              resolve(row);
-          });
-      });
+      const [rows] = await req.db.execute("SELECT * FROM videos WHERE id = ?", [videoId]);
+      const row = rows[0];
 
       if (!row) {
           return res.status(404).send("Video not found");
       }
 
-      const bucketName = process.env.AWS_BUCKET_NAME;
+      const bucketName = secret.AWS_BUCKET_NAME;
       const objectKey = `uploads/${row.fileName}`; // 假設 uploadPath 是 S3 的 key
 
       // 生成預簽名 URL
@@ -419,7 +195,8 @@ router.post('/transcode/:id', auth.authenticateCookie, async (req, res) => {
           Key: objectKey,
       };
 
-        
+      const s3Client = await initializeS3Client();
+
       const command = new GetObjectCommand(getObjectParams);
       const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 60 });
 
@@ -470,19 +247,28 @@ router.post('/transcode/:id', auth.authenticateCookie, async (req, res) => {
                       ContentType: `${targetFormat}`,
                   };
 
+                  const s3Client = await initializeS3Client();
+
                   const data = await s3Client.send(new PutObjectCommand(params));
 
                   // 更新數據庫
-                  await new Promise((resolve, reject) => {
-                      req.db.run(
-                          "UPDATE videos SET fileName = ?, shortFileName = ?, uploadPath = ?, fileExtension = ?, resolution = ?, fileSize = ? WHERE id = ?",
-                          [newFileName, shortFileName, `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`, targetFormat, resolution, fileSize, videoId],
-                          (updateErr) => {
-                              if (updateErr) return reject(updateErr);
-                              resolve();
-                          }
-                      );
-                  });
+                  const updateQuery = `
+                        UPDATE videos 
+                        SET fileName = ?, shortFileName = ?, uploadPath = ?, fileExtension = ?, resolution = ?, fileSize = ?
+                        WHERE id = ?
+                    `;
+
+                    const newUploadPath = `https://${params.Bucket}.s3.${secret.AWS_REGION}.amazonaws.com/${newFileName}`;
+
+                    await req.db.execute(updateQuery, [
+                        newFileName,
+                        shortFileName,
+                        newUploadPath,
+                        targetFormat,
+                        resolution,
+                        fileSize,
+                        videoId
+                    ]);
 
                   ffmpegEmitter.emit(videoId, 100); // 確保 100% 的進度被發送
                   res.send({ message: 'Transcoding succeeded', file: newFileName, size: fileSize });
@@ -516,7 +302,8 @@ router.get('/generate-upload-url', auth.authenticateCookie, async (req, res) => 
   }
 
   const uniqueFileName = `${Date.now()}-${fileName}`;
-  const bucketName = process.env.AWS_BUCKET_NAME;
+  const secret = await getAwsSecret();
+  const bucketName = secret.AWS_BUCKET_NAME;
   const key = `uploads/${uniqueFileName}`;
 
   const params = {
@@ -526,6 +313,8 @@ router.get('/generate-upload-url', auth.authenticateCookie, async (req, res) => 
   };
 
   const command = new PutObjectCommand(params);
+
+  const s3Client = await initializeS3Client();
 
   try {
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 60 }); // set the URL to expire in 60 seconds
@@ -547,7 +336,8 @@ router.get('/generate-download-url', auth.authenticateCookie, async (req, res) =
     return res.status(400).json({ error: 'Missing key query parameter' });
   }
 
-  const bucketName = process.env.AWS_BUCKET_NAME;
+  const secret = await getAwsSecret();
+  const bucketName = secret.AWS_BUCKET_NAME;
 
   const params = {
     Bucket: bucketName,
@@ -556,6 +346,8 @@ router.get('/generate-download-url', auth.authenticateCookie, async (req, res) =
   };
 
   const command = new GetObjectCommand(params);
+
+  const s3Client = await initializeS3Client();
 
   try {
     const downloadUrl = await getSignedUrl(s3Client, command, { expiresIn: 60 }); // 有效期为60秒
@@ -575,8 +367,9 @@ router.post('/upload-complete', auth.authenticateCookie, async (req, res) => {
       return res.status(400).json({ error: 'Missing key or userName parameters' });
   }
 
-  const bucketName = process.env.AWS_BUCKET_NAME;
-  const uploadPath = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+  const secret = await getAwsSecret();
+  const bucketName = secret.AWS_BUCKET_NAME;
+  const uploadPath = `https://${bucketName}.s3.${secret.AWS_REGION}.amazonaws.com/${key}`;
 
   try {
       // 確保 temp 目錄存在
@@ -594,6 +387,9 @@ router.post('/upload-complete', auth.authenticateCookie, async (req, res) => {
       };
 
       const command = new GetObjectCommand(getObjectParams);
+
+      const s3Client = await initializeS3Client();
+
       const url = await getSignedUrl(s3Client, command, { expiresIn: 60 });
 
       const response = await fetch(url);
@@ -661,9 +457,7 @@ router.post('/upload-complete', auth.authenticateCookie, async (req, res) => {
   }
 });
 
-// Route to delete a video
-// Route to delete a video
-router.delete('/delete/:id', auth.authenticateCookie, (req, res) => {
+router.delete('/delete/:id', auth.authenticateCookie, async (req, res) => {
   const videoId = req.params.id;
   const group = req.group;
 
@@ -671,39 +465,141 @@ router.delete('/delete/:id', auth.authenticateCookie, (req, res) => {
       return res.status(403).send({ message: 'Please contact the administrator.' }); // 403 Forbidden
   }
 
-    // Validate that videoId is a valid number
-    if (!/^\d+$/.test(videoId)) {
+  // Validate that videoId is a valid number
+  if (!/^\d+$/.test(videoId)) {
       console.error(`Received invalid video ID: ${videoId}`);
       return res.status(400).send({ message: 'Invalid video ID.' });
   }
 
-  // Check if the video exists in the database
-  req.db.get("SELECT id FROM videos WHERE id = ?", [videoId], (err, row) => {
-      if (err) {
-          console.error(`Database error: ${err.message}`);
-          return res.status(500).send({ message: "Database error" });
-      }
+  try {
+      // 檢查視頻是否存在
+      const [rows] = await req.db.execute("SELECT uploadPath FROM videos WHERE id = ?", [videoId]);
 
-      if (!row) {
+      if (rows.length === 0) {
           console.warn(`Cannot find video ID: ${videoId}`);
           return res.status(404).send({ message: "Cannot find the video" }); // 404 Not Found
       }
 
-      // Delete the video record from the database
-      req.db.run("DELETE FROM videos WHERE id = ?", [videoId], function(dbErr) {
-          if (dbErr) {
-              console.error(`Delete video unsuccessfully (ID: ${videoId}): ${dbErr.message}`);
-              return res.status(500).send({ message: "Delete video unsuccessfully" });
-          }
+      const uploadPath = rows[0].uploadPath;
+      const secret = await getAwsSecret();
+      const bucketName = secret.AWS_BUCKET_NAME;
 
-          console.log(`Successfully deleted video ID: ${videoId}`);
-          return res.status(200).send({ message: 'Successfully deleted video' });
-      });
-  });
+      // 從 uploadPath 中提取 S3 Key
+      const s3Key = uploadPath.split(`https://${bucketName}.s3.${secret.AWS_REGION}.amazonaws.com/`)[1];
+
+      // 刪除 S3 上的文件
+      const deleteParams = {
+          Bucket: bucketName,
+          Key: s3Key,
+      };
+
+      const s3Client = await initializeS3Client();
+
+      try {
+          await s3Client.send(new DeleteObjectCommand(deleteParams));
+          console.log(`Successfully deleted file from S3: ${s3Key}`);
+      } catch (s3DeleteErr) {
+          console.error("Failed to delete file from S3:", s3DeleteErr);
+          // 根據需求決定是否繼續刪除資料庫記錄
+          return res.status(500).send("Failed to delete file from S3: " + s3DeleteErr.message);
+      }
+
+      // 刪除資料庫記錄
+      await req.db.execute("DELETE FROM videos WHERE id = ?", [videoId]);
+
+      console.log(`Successfully deleted video ID: ${videoId}`);
+      return res.status(200).send({ message: 'Successfully deleted video' });
+  } catch (err) {
+      console.error("Error deleting video:", err);
+      return res.status(500).send({ message: "Error deleting video: " + err.message });
+  }
 });
-// Route to rename a video
-// Route to rename a video
-router.put('/rename/:id', auth.authenticateCookie, (req, res) => {
+
+// Route to delete a video
+// router.delete('/delete/:id', auth.authenticateCookie, (req, res) => {
+//   const videoId = req.params.id;
+//   const group = req.group;
+
+//   if (group !== 'admin') {
+//       return res.status(403).send({ message: 'Please contact the administrator.' }); // 403 Forbidden
+//   }
+
+//     // Validate that videoId is a valid number
+//     if (!/^\d+$/.test(videoId)) {
+//       console.error(`Received invalid video ID: ${videoId}`);
+//       return res.status(400).send({ message: 'Invalid video ID.' });
+//   }
+
+//   // Check if the video exists in the database
+//   req.db.get("SELECT id FROM videos WHERE id = ?", [videoId], (err, row) => {
+//       if (err) {
+//           console.error(`Database error: ${err.message}`);
+//           return res.status(500).send({ message: "Database error" });
+//       }
+
+//       if (!row) {
+//           console.warn(`Cannot find video ID: ${videoId}`);
+//           return res.status(404).send({ message: "Cannot find the video" }); // 404 Not Found
+//       }
+
+//       // Delete the video record from the database
+//       req.db.run("DELETE FROM videos WHERE id = ?", [videoId], function(dbErr) {
+//           if (dbErr) {
+//               console.error(`Delete video unsuccessfully (ID: ${videoId}): ${dbErr.message}`);
+//               return res.status(500).send({ message: "Delete video unsuccessfully" });
+//           }
+
+//           console.log(`Successfully deleted video ID: ${videoId}`);
+//           return res.status(200).send({ message: 'Successfully deleted video' });
+//       });
+//   });
+// });
+// // Route to rename a video
+// router.put('/rename/:id', auth.authenticateCookie, (req, res) => {
+//   const videoId = req.params.id;
+//   const newName = req.body.newName;
+//   const group = req.group;
+
+//   // Check if the user is an admin
+//   if (group !== 'admin') {
+//       console.error(`Non-admin user (${group}) attempting to rename video ID: ${videoId}`);
+//       return res.status(403).send({ message: 'Please contact the administrator.' }); // 403 Forbidden
+//   }
+
+//   // Validate the newName input
+//   if (!newName || typeof newName !== 'string' || newName.trim() === "") {
+//       console.error(`Invalid new name provided for video ID: ${videoId}`);
+//       return res.status(400).send({ message: 'Invalid new name provided.' }); // 400 Bad Request
+//   }
+
+//   // Check if the video exists in the database
+//   req.db.get("SELECT * FROM videos WHERE id = ?", [videoId], (err, row) => {
+//       if (err) {
+//           console.error(`Database error: ${err.message}`);
+//           return res.status(500).send({ message: "Database error" });
+//       }
+
+//       if (!row) {
+//           console.error(`Cannot find video ID: ${videoId}`);
+//           return res.status(404).send({ message: "Cannot find the video" }); // 404 Not Found
+//       }
+
+//       // Update the shortFileName and fileName in the database
+//       const updatedFileName = `${newName}.${row.fileExtension}`; // Assuming the row has fileExtension
+//       req.db.run("UPDATE videos SET fileName = ?, shortFileName = ? WHERE id = ?", [updatedFileName, newName, videoId], (updateErr) => {
+//           if (updateErr) {
+//               console.error(`Failed to update video data (ID: ${videoId}): ${updateErr.message}`);
+//               return res.status(500).send({ message: "Failed to update video data in database" });
+//           }
+
+//           console.log(`Successfully renamed video ID: ${videoId} to ${newName}`);
+//           return res.status(200).send({ message: 'Video renamed successfully' });
+//       });
+//   });
+// });
+
+
+router.put('/rename/:id', auth.authenticateCookie, async (req, res) => {
   const videoId = req.params.id;
   const newName = req.body.newName;
   const group = req.group;
@@ -720,32 +616,113 @@ router.put('/rename/:id', auth.authenticateCookie, (req, res) => {
       return res.status(400).send({ message: 'Invalid new name provided.' }); // 400 Bad Request
   }
 
-  // Check if the video exists in the database
-  req.db.get("SELECT * FROM videos WHERE id = ?", [videoId], (err, row) => {
-      if (err) {
-          console.error(`Database error: ${err.message}`);
-          return res.status(500).send({ message: "Database error" });
-      }
+  try {
+      // 檢查視頻是否存在
+      const [rows] = await req.db.execute("SELECT * FROM videos WHERE id = ?", [videoId]);
+      const row = rows[0];
 
       if (!row) {
           console.error(`Cannot find video ID: ${videoId}`);
           return res.status(404).send({ message: "Cannot find the video" }); // 404 Not Found
       }
 
-      // Update the shortFileName and fileName in the database
-      const updatedFileName = `${newName}.${row.fileExtension}`; // Assuming the row has fileExtension
-      req.db.run("UPDATE videos SET fileName = ?, shortFileName = ? WHERE id = ?", [updatedFileName, newName, videoId], (updateErr) => {
-          if (updateErr) {
-              console.error(`Failed to update video data (ID: ${videoId}): ${updateErr.message}`);
-              return res.status(500).send({ message: "Failed to update video data in database" });
-          }
+      // 更新 shortFileName 和 fileName
+      const updatedFileName = `${newName}.${row.fileExtension}`;
+      const shortFileName = newName;
 
-          console.log(`Successfully renamed video ID: ${videoId} to ${newName}`);
-          return res.status(200).send({ message: 'Video renamed successfully' });
-      });
-  });
+      // 更新資料庫
+      await req.db.execute("UPDATE videos SET fileName = ?, shortFileName = ? WHERE id = ?", [
+          updatedFileName,
+          shortFileName,
+          videoId
+      ]);
+
+      console.log(`Successfully renamed video ID: ${videoId} to ${newName}`);
+      return res.status(200).send({ message: 'Video renamed successfully' });
+  } catch (err) {
+      console.error("Failed to rename video:", err);
+      return res.status(500).send({ message: "Failed to rename video: " + err.message });
+  }
 });
 
+// router.put('/rename/:id', auth.authenticateCookie, async (req, res) => {
+//   const videoId = req.params.id;
+//   const newName = req.body.newName;
+//   const group = req.group; // 假設 `req.user` 包含 `group` 屬性
+
+//   // 檢查使用者是否為 admin
+//   if (group !== 'admin') {
+//       console.error(`Non-admin user (${group}) attempting to rename video ID: ${videoId}`);
+//       return res.status(403).send({ message: 'Please contact the administrator.' }); // 403 Forbidden
+//   }
+
+//   // 驗證 newName 輸入
+//   if (!newName || typeof newName !== 'string' || newName.trim() === "") {
+//       console.error(`Invalid new name provided for video ID: ${videoId}`);
+//       return res.status(400).send({ message: 'Invalid new name provided.' }); // 400 Bad Request
+//   }
+
+//   try {
+//       // 從資料庫獲取視頻信息
+//       const [rows] = await req.db.execute("SELECT * FROM videos WHERE id = ?", [videoId]);
+//       const row = rows[0];
+
+//       if (!row) {
+//           console.error(`Cannot find video ID: ${videoId}`);
+//           return res.status(404).send({ message: "Cannot find the video" }); // 404 Not Found
+//       }
+
+//       // 從 uploadPath 中提取 S3 Key
+//       const uploadPath = row.uploadPath;
+//       const bucketName = process.env.AWS_BUCKET_NAME;
+//       const region = process.env.AWS_REGION;
+//       const s3UrlPrefix = `https://${bucketName}.s3.${region}.amazonaws.com/`;
+//       if (!uploadPath.startsWith(s3UrlPrefix)) {
+//           console.error(`Invalid uploadPath format: ${uploadPath}`);
+//           return res.status(400).send({ message: "Invalid uploadPath format." });
+//       }
+
+//       const oldS3Key = uploadPath.substring(s3UrlPrefix.length); // e.g., uploads/filename.mp4
+
+//       // 構造新的 S3 Key
+//       const fileExtension = row.fileExtension;
+//       const newFileName = `${newName}.${fileExtension}`;
+//       const newS3Key = `uploads/${newFileName}`;
+
+//       // 執行 S3 複製操作
+//       const copyParams = {
+//           Bucket: bucketName,
+//           CopySource: oldS3Key, 
+//           Key: newS3Key,
+//       };
+//       const copyCommand = new CopyObjectCommand(copyParams);
+//       await s3Client.send(copyCommand);
+//       console.log(`Successfully copied ${oldS3Key} to ${newS3Key}`);
+
+//       // 執行 S3 刪除操作
+//       const deleteParams = {
+//           Bucket: bucketName,
+//           Key: oldS3Key,
+//       };
+//       const deleteCommand = new DeleteObjectCommand(deleteParams);
+//       await s3Client.send(deleteCommand);
+//       console.log(`Successfully deleted old S3 object: ${oldS3Key}`);
+
+//       // 更新資料庫記錄
+//       const newUploadPath = `https://${bucketName}.s3.${region}.amazonaws.com/${newS3Key}`;
+//       await req.db.execute(
+//           "UPDATE videos SET fileName = ?, shortFileName = ?, uploadPath = ? WHERE id = ?",
+//           [newFileName, newName, newUploadPath, videoId]
+//       );
+
+//       console.log(`Successfully renamed video ID: ${videoId} to ${newName}`);
+
+//       return res.status(200).send({ message: 'Video renamed successfully' });
+//   } catch (err) {
+//       console.error("Failed to rename video:", err);
+//       return res.status(500).send({ message: "Failed to rename video: " + err.message });
+//   }
+// });
 
 
 // Serve up static files if they exist in public directory, protected by authentication middleware

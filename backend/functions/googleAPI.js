@@ -1,6 +1,7 @@
 require('dotenv').config();
 
-const API_KEY_GOOGLE = process.env.API_KEY_GOOGLE;
+const { getAwsSecret }= require('../public/awsSecret.js');
+
 
 // Function to generate tags from a filename
 function generateTags(filename) {
@@ -18,7 +19,8 @@ function generateTags(filename) {
 
 // Function to search YouTube videos
 async function searchYouTube(query, maxResults = 25) {
-    const API_KEY = `${API_KEY_GOOGLE}`;
+    const secret = await getAwsSecret();
+    const API_KEY = secret.API_KEY_GOOGLE;
     const queryTags = generateTags(query);
 
     const queryString = queryTags.join(' ');

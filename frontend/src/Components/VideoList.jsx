@@ -105,6 +105,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
+import TranscodeModal from './TranscodeModal';
+import Notification from './Notification';
 
 const TranscodeIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -143,6 +145,11 @@ function VideoList() {
   const apiUrl = process.env.REACT_APP_API_URL;
   const navigate = useNavigate();
   const hasFetched = useRef(false);
+  const [isTranscodeModalOpen, setIsTranscodeModalOpen] = useState(false);
+  const [selectedVideoId, setSelectedVideoId] = useState(null);
+  const [notification, setNotification] = useState({ message: '', type: '' });
+
+
 
   const getTokenFromCookies = () => {
     const cookieValue = document.cookie
@@ -215,15 +222,17 @@ function VideoList() {
         case 'download':
           await handleDownload(fileName, token);
           break;
-        case 'transcode':
-          await handleTranscode(fileName, token);
-          break;
+          case 'transcode':
+            setSelectedVideoId(fileName);
+            setIsTranscodeModalOpen(true);
+            fetchVideos();
+            break;
         default:
           console.error(`Unknown action: ${action}`);
       }
     } catch (error) {
       console.error(`Error performing ${action}:`, error);
-      alert(`Failed to ${action} the video. Please try again.`);
+      setNotification(`Failed to ${action} the video. Please try again.`);
     }
   };
 
@@ -246,16 +255,15 @@ function VideoList() {
       const data = await response.json();
   
       if (response.ok) {
-        alert(data.message || 'Video deleted successfully.');
+        setNotification({ message: data.message || 'Video deleted successfully.', type: 'success' });
         fetchVideos();
       } else {
-        // handle the error
-        alert(data.message || 'Failed to delete video.');
+        setNotification({ message: data.message || 'Failed to delete video.', type: 'error' });
       }
     } catch (error) {
       // handle network errors or other errors
       console.error('Error deleting video:', error);
-      alert('An error occurred while deleting the video. Please try again later.');
+      setNotification('An error occurred while deleting the video. Please try again later.');
     }
   };
 
@@ -280,16 +288,16 @@ function VideoList() {
   
       if (response.ok) {
         // Show success message and refresh the video list
-        alert(data.message || 'Video renamed successfully.');
+        setNotification(data.message || 'Video renamed successfully.');
         fetchVideos();
       } else {
         // Handle server-side errors
-        alert(data.message || 'Failed to rename video.');
+        setNotification(data.message || 'Failed to rename video.');
       }
     } catch (error) {
       // Handle network errors or other unexpected errors
       console.error('Error renaming video:', error);
-      alert('An error occurred while renaming the video. Please try again later.');
+      setNotification('An error occurred while renaming the video. Please try again later.');
     }
   };
 
@@ -326,37 +334,31 @@ function VideoList() {
     }
   };
 
-  const handleTranscode = async (videoId, token) => {
-    const targetFormat = window.prompt('Enter the target format (e.g., mp4, avi):', 'mp4');
-    if (!targetFormat) return;
-
-    const resolution = window.prompt('Enter the desired resolution (e.g., 1280x720):', '1280x720');
-    if (!resolution) return;
-
-    const response = await fetch(`${apiUrl}/transcode/${videoId}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({ format: targetFormat, resolution }),
-    });
-
-    if (response.ok) {
-      alert('Transcoding started successfully.');
-      // Optionally, you can implement progress tracking here
-    } else {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to transcode video.');
-    }
-  };
-
   return (
     <div style={{ minHeight: '100vh', width: '100%', backgroundColor: '#f3f4f6', padding: '2rem' }}>
       <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
         <Header showUploadButton={true} handleLogout={handleLogout} />
-
+        {/*transcode modal*/}
+        {isTranscodeModalOpen && (
+        <TranscodeModal
+          videoId={selectedVideoId}
+          onClose={() => setIsTranscodeModalOpen(false)}
+          onTranscodeComplete={() => {
+            setIsTranscodeModalOpen(false);
+            fetchVideos();
+          }}
+          token={getTokenFromCookies()}
+          apiUrl={apiUrl}
+        />
+      )}
+      {/*notification*/}
+      {notification.message && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification({ message: '', type: '' })}
+        />
+      )}
         <main style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827' }}>Videos uploaded by {username}</h1>
           
@@ -374,11 +376,7 @@ function VideoList() {
               <tbody>
                 {videos.map((video) => (
                   <tr key={video.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                    <td style={{ padding: '0.75rem 0' }}>
-                      <a href={`/videoactions/${video.fileName}`} target="_blank" rel="noreferrer" style={{ color: '#4f46e5', textDecoration: 'none' }}>
-                        {video.fileName}
-                      </a>
-                    </td>
+                    <td style={{ padding: '0.75rem 0', color: '#4f46e5', textDecoration: 'none' }}>{video.fileName}</td>
                     <td style={{ padding: '0.75rem 0' }}>{video.fileSize} bytes</td>
                     <td style={{ padding: '0.75rem 0' }}>{video.fileExtension}</td>
                     <td style={{ padding: '0.75rem 0' }}>{new Date(video.uploadTime).toLocaleString()}</td>
