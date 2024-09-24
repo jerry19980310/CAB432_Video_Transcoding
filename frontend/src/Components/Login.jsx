@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import GoogleIcon from '../icons/GoogleIcon'; 
+import '../styles/Login.css';
 
 const Login = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -31,64 +33,16 @@ const Login = () => {
     }
   };
 
-  const containerStyle = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh',
-    backgroundColor: '#f0f2f5',
-    fontFamily: 'Arial, sans-serif'
-  };
-
-  const formContainerStyle = {
-    backgroundColor: '#ffffff',
-    padding: '40px',
-    borderRadius: '8px',
-    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-    width: '100%',
-    maxWidth: '400px'
-  };
-
-  const titleStyle = {
-    color: '#1877f2',
-    fontSize: '24px',
-    marginBottom: '20px',
-    textAlign: 'center'
-  };
-
-  const inputStyle = {
-    width: '100%',
-    padding: '12px',
-    marginBottom: '15px',
-    border: '1px solid #dddfe2',
-    borderRadius: '6px',
-    fontSize: '16px'
-  };
-
-  const buttonStyle = {
-    width: '100%',
-    padding: '12px',
-    backgroundColor: '#1877f2',
-    color: '#ffffff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '18px',
-    fontWeight: 'bold',
-    cursor: 'pointer'
-  };
-
-  const linkStyle = {
-    display: 'block',
-    marginTop: '20px',
-    textAlign: 'center',
-    color: '#1877f2',
-    textDecoration: 'none'
+  const handleGoogleLogin = () => {
+    // Implement Google Login logic here
+    console.log('Google Login clicked');
+    // You would typically redirect to a Google OAuth URL or use a library like react-google-login
   };
 
   return (
-    <div style={containerStyle}>
-      <div style={formContainerStyle}>
-        <h2 style={titleStyle}>Welcome, please login</h2>
+    <div className="container">
+      <div className="form-container">
+        <h2 className="title">Welcome, please login</h2>
         <form onSubmit={handleSubmit}>
           <input
             type="text"
@@ -96,7 +50,7 @@ const Login = () => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
-            style={inputStyle}
+            className="input"
           />
           <input
             type="password"
@@ -104,13 +58,19 @@ const Login = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            style={inputStyle}
+            className="input"
           />
-          <button type="submit" style={buttonStyle}>Login</button>
+          <button type="submit" className="button">
+            Login
+          </button>
         </form>
-        <Link to="/signup" style={linkStyle}>
+        <Link to="/signup" className="link">
           Don't have an account? Sign up
         </Link>
+        <button onClick={handleGoogleLogin} className="google-button">
+          <GoogleIcon />
+          Login with Google
+        </button>
       </div>
     </div>
   );
