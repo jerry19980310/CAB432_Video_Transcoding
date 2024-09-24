@@ -44,12 +44,13 @@ const SignUp = () => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ token: credential }),
+       credentials: 'include',
     });
     const data = await res.json();
     if (data.success) {
-      // Save tokens and navigate as needed
-      document.cookie = `token=${data.token}; path=/; max-age=1800; SameSite=Strict`;
-      document.cookie = `username=${data.username}; path=/; max-age=1800; SameSite=Strict`;
+      // // Save tokens and navigate as needed
+      // document.cookie = `token=${data.token}; path=/; max-age=1800; SameSite=None; Secure`;
+      // document.cookie = `username=${data.username}; path=/; max-age=1800; SameSite=None; Secure`;
       navigate('/upload');
       console.log('Backend response data:', data);
     } else {

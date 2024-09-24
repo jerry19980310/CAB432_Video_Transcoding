@@ -12,6 +12,7 @@ const CLIENT_ID = process.env.COGNITO_CLIENT_ID; // Your Cognito App Client ID
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const JWT_SECRET = process.env.JWT_SECRET ;
 
 
 const saltRounds = 10; // Salt rounds for hashing passwords

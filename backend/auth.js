@@ -15,15 +15,18 @@ const client = jwksClient({
 
 // 根據 JWT 的 kid 獲取對應的公鑰
 function getKey(header, callback) {
-    client.getSigningKey(header.kid, function(err, key) {
-        if (err) {
-            callback(err, null);
-        } else {
-            const signingKey = key.getPublicKey();
-            callback(null, signingKey);
-        }
+    if (!header.kid) {
+      return callback(new Error('No KID specified in token header'), null);
+    }
+    client.getSigningKey(header.kid, function (err, key) {
+      if (err) {
+        callback(err, null);
+      } else {
+        const signingKey = key.getPublicKey();
+        callback(null, signingKey);
+      }
     });
-}
+  }
 
 // 驗證 ID Token 的中介軟件（通常用於前端應用）
 const authenticateCookie = (req, res, next) => {

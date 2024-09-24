@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import GoogleIcon from '../icons/GoogleIcon'; 
-import { GoogleLogin, googleLogout } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 import '../styles/Login.css';
 
 const Login = () => {
@@ -21,9 +21,11 @@ const Login = () => {
         body: JSON.stringify({ username, password }),
       });
       const data = await response.json();
+      console.log(data)
       if (data.success) {
-        document.cookie = `token=${data.data.idToken}; path=/; max-age=1800; SameSite=Strict`;
-        document.cookie = `username=${data.data.username}; path=/; max-age=1800; SameSite=Strict`;
+        document.cookie = `token=${data.idToken}; path=/; max-age=1800; SameSite=Strict`;
+        document.cookie = `username=${data.username}; path=/; max-age=1800; SameSite=Strict`;
+        console.log(document.cookie)
         navigate('/upload');
       } else {
         alert('Login failed. Please check your credentials.');
@@ -34,38 +36,38 @@ const Login = () => {
     }
   };
 
-    // Handle Google Login success
-    const handleGoogleSuccess = async (credentialResponse) => {
-      try {
-        const { credential } = credentialResponse;
-        // Send the credential to your backend for verification and user login
-        const res = await fetch(`${apiUrl}/auth/google`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token: credential }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          // Save tokens and navigate as needed
-          document.cookie = `token=${data.data.idToken}; path=/; max-age=1800; SameSite=Strict`;
-          document.cookie = `username=${data.data.username}; path=/; max-age=1800; SameSite=Strict`;
-          navigate('/upload');
-        } else {
-          alert(data.message || 'Google Sign-In failed. Please try again.');
-        }
-      } catch (error) {
-        console.error('Google Sign-In Error:', error);
-        alert('An error occurred during Google Sign-In. Please try again.');
+  // Handle Google Login success
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const { credential } = credentialResponse;
+      // Send the credential to your backend for verification and user login
+      const res = await fetch(`${apiUrl}/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: credential }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Save tokens and navigate as needed
+        document.cookie = `token=${data.token}; path=/; max-age=1800; SameSite=Strict`;
+        document.cookie = `username=${data.username}; path=/; max-age=1800; SameSite=Strict`;
+        navigate('/upload');
+      } else {
+        alert(data.message || 'Google Sign-In failed. Please try again.');
       }
-    };
-  
-    // Handle Google Sign-In failure
-    const handleGoogleFailure = (error) => {
-      console.error('Google Sign-In Failure:', error);
-      alert('Google Sign-In failed. Please try again.');
-    };
+    } catch (error) {
+      console.error('Google Sign-In Error:', error);
+      alert('An error occurred during Google Sign-In. Please try again.');
+    }
+  };
+
+  // Handle Google Sign-In failure
+  const handleGoogleFailure = (error) => {
+    console.error('Google Sign-In Failure:', error);
+    alert('Google Sign-In failed. Please try again.');
+  };
 
   return (
     <div className="container">
