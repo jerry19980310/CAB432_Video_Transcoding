@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import GoogleIcon from '../icons/GoogleIcon'; 
+import { GoogleLogin } from '@react-oauth/google';
 import '../styles/SignUp.css'; 
 
 const SignUp = () => {
@@ -32,11 +33,39 @@ const SignUp = () => {
     }
   };
 
-  const handleGoogleSignUp = () => {
-    // Implement Google Sign-Up logic here
-    console.log('Google Sign-Up clicked');
-    // You would typically redirect to a Google OAuth URL or use a library like react-google-login
-  };
+ // Handle Google Sign-Up success
+ const handleGoogleSuccess = async (credentialResponse) => {
+  try {
+    const { credential } = credentialResponse;
+    // Send the credential to your backend for verification and user creation
+    const res = await fetch(`${apiUrl}/api/auth/google`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token: credential }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      // Save tokens and navigate as needed
+      document.cookie = `token=${data.token}; path=/; max-age=1800; SameSite=Strict`;
+      document.cookie = `username=${data.username}; path=/; max-age=1800; SameSite=Strict`;
+      navigate('/upload');
+      console.log('Backend response data:', data);
+    } else {
+      alert(data.message || 'Google Sign-In failed. Please try again.');
+    }
+  } catch (error) {
+    console.error('Google Sign-In Error:', error);
+    alert('An error occurred during Google Sign-In. Please try again.');
+  }
+};
+
+// Handle Google Sign-In failure
+const handleGoogleFailure = (error) => {
+  console.error('Google Sign-In Failure:', error);
+  alert('Google Sign-In failed. Please try again.');
+};
 
   return (
     <div className="container">
@@ -74,10 +103,17 @@ const SignUp = () => {
         <Link to="/login" className="link">
           Already have an account? Log in
         </Link>
-        <button onClick={handleGoogleSignUp} className="google-button">
-          <GoogleIcon />
-          Sign up with Google
-        </button>
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={handleGoogleFailure}
+          ux_mode="popup"
+          render={(renderProps) => (
+            <button onClick={renderProps.onClick} className="google-button">
+              <GoogleIcon />
+              Sign up with Google
+            </button>
+          )}
+        />
       </div>
     </div>
   );

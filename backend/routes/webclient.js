@@ -92,24 +92,6 @@ router.post("/login", async (req, res) => {
           username: username,
         },
       });
-
-      // 或者，若您希望生成自訂的 JWT，則可以使用以下方式：
-      /*
-      const customToken = jwt.sign(
-        {
-          username: username,
-          // 可以根據需要添加其他用戶資訊
-        },
-        JWT_SECRET,
-        { expiresIn: '1h' }
-      );
-
-      return res.json({
-        success: true,
-        message: "登入成功。",
-        authToken: customToken,
-      });
-      */
     } else {
       // 未預期的回應
       return res.status(500).json({

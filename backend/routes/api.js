@@ -6,52 +6,73 @@ const router = express.Router();
 const auth = require("../auth.js");
 const { SignUpCommand } = require("@aws-sdk/client-cognito-identity-provider");
 const cognitoClient = require("../public/cognito"); // Path to your AWS config
+const jwt = require("jsonwebtoken");
 
 const CLIENT_ID = process.env.COGNITO_CLIENT_ID; // Your Cognito App Client ID
+
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 
 const saltRounds = 10; // Salt rounds for hashing passwords
 
-// Sign-up route
-// router.post("/signup", (req, res) => {
-//   const { username, email, password } = req.body;
 
-//   if (!username || !email || !password) {
-//     return res.status(400).json({ success: false, message: "All fields are required." });
-//   }
+router.post('/auth/google', async (req, res) => {
+  const { token } = req.body;
+  try {
+    // Verify the Google ID token
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
 
-//   // Check if user already exists in the database
-//   req.db.get("SELECT * FROM users WHERE username = ? OR email = ?", [username, email], (err, row) => {
-//     if (err) {
-//       return res.status(500).json({ success: false, message: "Database error: " + err.message });
-//     }
+    // Get user info from the payload
+    const { sub, email, name } = payload;
+    const googleUserId = sub;
 
-//     if (row) {
-//       // User already exists
-//       return res.status(400).json({ success: false, message: "User already exists" });
-//     }
+    // Now, check if the user exists in your database
+    const { db } = req; // Assuming db is attached to req
+    db.get('SELECT * FROM users WHERE google_user_id = ?', [googleUserId], (err, user) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+      if (user) {
+        // User exists, generate a JWT token
+        const jwtPayload = { username: user.username, email: user.email, id: user.id };
+        const token = jwt.sign(jwtPayload, process.env.JWT_SECRET, { expiresIn: '1h' });
+        return res.json({
+          success: true,
+          data: {
+            idToken: token,
+            username: name,
+          },
+        });
+      } else {
+        // User does not exist, create a new user
+        db.run(
+          'INSERT INTO users (username, email, google_user_id) VALUES (?, ?, ?)',
+          [name, email, googleUserId],
+          function (err) {
+            if (err) {
+              console.error('Database error:', err);
+              return res.status(500).json({ success: false, message: 'Database error' });
+            }
+            const userId = this.lastID;
+            const jwtPayload = { username: name, email: email, id: userId };
+            const token = jwt.sign(jwtPayload, process.env.JWT_SECRET, { expiresIn: '1h' });
+            return res.json({ success: true, token, username: name });
+          }
+        );
+      }
+    });
+  } catch (error) {
+    console.error('Error verifying Google ID token:', error);
+    return res.status(401).json({ success: false, message: 'Invalid Google ID token' });
+  }
+});
 
-//     // Hash the password before saving
-//     bcrypt.hash(password, saltRounds, (err, hash) => {
-//       if (err) {
-//         return res.status(500).json({ success: false, message: "Error hashing password: " + err.message });
-//       }
-
-//       // Insert new user into the database
-//       req.db.run(
-//         "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-//         [username, email, hash],
-//         (err) => {
-//           if (err) {
-//             console.log(err.message);
-//             return res.status(500).json({ success: false, message: "Error inserting user into the database: " + err.message });
-//           }
-//           res.status(201).json({ success: true, message: "User registered successfully" });
-//         }
-//       );
-//     });
-//   });
-// });
 
 router.post("/signup", async (req, res) => {
   const { username, email, password } = req.body;
