@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import '../styles/login.css';
+import GoogleIcon from '../icons/GoogleIcon'; 
+import '../styles/Login.css';
 
 const Login = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -22,7 +23,7 @@ const Login = () => {
       if (data.success) {
         document.cookie = `token=${data.data.idToken}; path=/; max-age=1800; SameSite=Strict`;
         document.cookie = `username=${data.data.username}; path=/; max-age=1800; SameSite=Strict`;
-        navigate('/upload'); // Changed from '/main' to '/upload'
+        navigate('/upload');
       } else {
         alert('Login failed. Please check your credentials.');
       }
@@ -32,45 +33,47 @@ const Login = () => {
     }
   };
 
+  const handleGoogleLogin = () => {
+    // Implement Google Login logic here
+    console.log('Google Login clicked');
+    // You would typically redirect to a Google OAuth URL or use a library like react-google-login
+  };
+
   return (
-    <div className="login-container">
-      <div className="login-icon">
-        {/* SVG icon */}
-      </div>
-      <h2>Welcome, please login</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="input-group">
-          <span className="input-icon">
-            {/* User icon SVG */}
-          </span>
+    <div className="container">
+      <div className="form-container">
+        <h2 className="title">Welcome, please login</h2>
+        <form onSubmit={handleSubmit}>
           <input
             type="text"
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
+            className="input"
           />
-        </div>
-        <div className="input-group">
-          <span className="input-icon">
-            {/* Password icon SVG */}
-          </span>
           <input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            className="input"
           />
-        </div>
-        <button type="submit" className="login-button">Login</button>
-      </form>
-      <p>
-        Don't have an account? <Link to="/signup">Sign up</Link>
-      </p>
+          <button type="submit" className="button">
+            Login
+          </button>
+        </form>
+        <Link to="/signup" className="link">
+          Don't have an account? Sign up
+        </Link>
+        <button onClick={handleGoogleLogin} className="google-button">
+          <GoogleIcon />
+          Login with Google
+        </button>
+      </div>
     </div>
   );
 };
 
 export default Login;
-

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import '../styles/signup.css';
+import { useNavigate, Link } from 'react-router-dom';
+import GoogleIcon from '../icons/GoogleIcon'; 
+import '../styles/SignUp.css'; 
 
 const SignUp = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -21,8 +22,7 @@ const SignUp = () => {
       });
       const data = await response.json();
       if (data.success) {
-        // Redirect to email confirmation page instead of confirm page
-        navigate('/confirm-email', { state: { email } });
+        navigate('/login', { state: { email } });
       } else {
         alert(data.message || 'Signup failed. Please try again.');
       }
@@ -32,51 +32,53 @@ const SignUp = () => {
     }
   };
 
+  const handleGoogleSignUp = () => {
+    // Implement Google Sign-Up logic here
+    console.log('Google Sign-Up clicked');
+    // You would typically redirect to a Google OAuth URL or use a library like react-google-login
+  };
+
   return (
-    <div className="signup-container">
-      <div className="signup-icon">
-        {/* SVG icon */}
-      </div>
-      <h2>Create an account</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="input-group">
-          <span className="input-icon">
-            {/* User icon SVG */}
-          </span>
+    <div className="container">
+      <div className="form-container">
+        <h2 className="title">Create an account</h2>
+        <form onSubmit={handleSubmit}>
           <input
             type="text"
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
+            className="input"
           />
-        </div>
-        <div className="input-group">
-          <span className="input-icon">
-            {/* Email icon SVG */}
-          </span>
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            className="input"
           />
-        </div>
-        <div className="input-group">
-          <span className="input-icon">
-            {/* Password icon SVG */}
-          </span>
           <input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            className="input"
           />
-        </div>
-        <button type="submit" className="signup-button">Sign Up</button>
-      </form>
+          <button type="submit" className="button">
+            Sign Up
+          </button>
+        </form>
+        <Link to="/login" className="link">
+          Already have an account? Log in
+        </Link>
+        <button onClick={handleGoogleSignUp} className="google-button">
+          <GoogleIcon />
+          Sign up with Google
+        </button>
+      </div>
     </div>
   );
 };
