@@ -13,7 +13,7 @@ const getAwsSecret = async () => {
       const secret = response.SecretString;
       return JSON.parse(secret);
    } catch (error) {
-      console.log(error);
+      // console.log(error);
    }
 }
 

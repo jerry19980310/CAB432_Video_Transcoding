@@ -1,13 +1,12 @@
-// app.js
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const fileUpload = require("express-fileupload");
 const path = require("path");
 const { getAwsSecret } = require("./public/awsSecret");
-const { getAwsParameter } = require("./public/awsParameter");
+const { getAwsParameterAssessment2 } = require("./public/awsParameter");
 require('dotenv').config();
 const cors = require("cors"); 
-const initializeDatabaseAndPool = require("./db"); // 引入初始化函數
+const initializeDatabaseAndPool = require("./db");
 
 const app = express();
 const port = getAwsSecret().PORT || 3001;
@@ -17,7 +16,7 @@ const port = getAwsSecret().PORT || 3001;
 // Enable CORS if your frontend runs on a different domain or port
 async function setupCors() {
     // Wait for the promise to resolve and assign the resolved value to clientUrl
-    const clientUrl = await getAwsParameter();
+    const clientUrl = await getAwsParameterAssessment2();
   
     // Now clientUrl is guaranteed to have the resolved value, and you can proceed
     console.log(clientUrl); // This will print the actual value, not a pending promise
@@ -25,7 +24,6 @@ async function setupCors() {
     const allowedOrigins = [
       process.env.CLIENT_URL,
       clientUrl, // clientUrl now has the resolved value from getAwsParameter
-      process.env.CLIENT_URL2
     ];
   
     // Configure CORS middleware
@@ -63,35 +61,7 @@ app.use(express.urlencoded({ extended: true }));
 const apiRouter = require("./routes/api");
 const webclientRouter = require("./routes/webclient");
 
-// const dropUsersTable = async (pool) => {
-//     const dropTableQuery = `
-//         DROP TABLE IF EXISTS users;
-//     `;
-//     try {
-//         await pool.execute(dropTableQuery);
-//         console.log('Users 表已刪除（如果存在）。');
-//     } catch (err) {
-//         console.error('刪除 users 表時出錯:', err);
-//         throw err; // 重新拋出錯誤以阻止伺服器啟動
-//     }
-// };
 
-// const dropVideosTable = async (pool) => {
-//     const dropTableQuery = `
-//         DROP TABLE IF EXISTS videos;
-//     `;
-//     try {
-//         await pool.execute(dropTableQuery);
-//         console.log('videos 表已刪除（如果存在）。');
-//     } catch (err) {
-//         console.error('刪除 videos 表時出錯:', err);
-//         throw err; // 重新拋出錯誤以阻止伺服器啟動
-//     }
-// };
-
-/**
- * 函數：創建 users 表
- */
 const createUsersTable = async (pool) => {
     const createTableQuery = `
         CREATE TABLE IF NOT EXISTS users (
@@ -104,16 +74,13 @@ const createUsersTable = async (pool) => {
     `;
     try {
         await pool.execute(createTableQuery);
-        console.log('Users 表已創建或已存在。');
+        console.log('Users table created successfully or exists.');
     } catch (err) {
-        console.error('創建 users 表時出錯:', err);
-        throw err; // 重新拋出錯誤以阻止伺服器啟動
+        console.error('Users table created error:', err);
+        throw err;
     }
 };
 
-/**
- * 函數：創建 videos 表
- */
 const createVideosTable = async (pool) => {
     const createTableQuery = `
         CREATE TABLE IF NOT EXISTS videos (
@@ -133,30 +100,23 @@ const createVideosTable = async (pool) => {
     `;
     try {
         await pool.execute(createTableQuery);
-        console.log('Videos 表已創建或已存在。');
+        console.log('Videos table created successfully or exists.');
     } catch (err) {
-        console.error('創建 videos 表時出錯:', err);
-        throw err; // 重新拋出錯誤以阻止伺服器啟動
+        console.error('Users table created error:', err);
+        throw err;
     }
 };
 
-/**
- * 函數：初始化資料庫表
- */
 const initializeDatabaseTables = async (pool) => {
-    // await dropVideosTable(pool);
-    // await dropUsersTable(pool);
     await createUsersTable(pool);
     await createVideosTable(pool);
 };
 
-/**
- * 主函數：初始化資料庫並啟動伺服器
- */
+
 const startServer = async () => {
     try {
-        const pool = await initializeDatabaseAndPool(); // 初始化資料庫和連接池
-        console.log('成功連接到資料庫。');
+        const pool = await initializeDatabaseAndPool();
+        console.log('Connected to the database.');
 
         // Middleware to attach the db to the req object (optional)
         app.use((req, res, next) => {
@@ -164,22 +124,18 @@ const startServer = async () => {
             next();
         });
 
-        // 初始化資料庫表
         await initializeDatabaseTables(pool);
 
-        // 使用路由
         app.use("/api", apiRouter);
         app.use("/", webclientRouter);
 
-        // 啟動伺服器
         app.listen(port, () => {
-            console.log(`伺服器正在監聽端口 ${port}。`);
+            console.log(`Server listen ${port}。`);
         });
     } catch (err) {
-        console.error('資料庫初始化失敗，伺服器未啟動。', err);
-        process.exit(1); // 以失敗狀態碼退出
+        console.error('Database initialize error', err);
+        process.exit(1);
     }
 };
 
-// 啟動伺服器
 startServer();

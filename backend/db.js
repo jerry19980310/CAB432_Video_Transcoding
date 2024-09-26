@@ -6,9 +6,7 @@ const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client
 const secret_name_DB = "n11428911-RDS";
 const client = new SecretsManagerClient({ region: "ap-southeast-2" });
 
-/**
- * 函數：從 AWS Secrets Manager 獲取 DB 密鑰
- */
+
 const getAwsDBSecret = async () => {
   try {
     const response = await client.send(
@@ -23,38 +21,31 @@ const getAwsDBSecret = async () => {
   }
 };
 
-/**
- * 函數：創建資料庫（如果尚不存在）
- */
+
 const createDatabase = async (dbName) => {
   const secret = await getAwsDBSecret();
 
   try {
-    // 連接到 MySQL 伺服器，不指定資料庫
     const connection = await mysql.createConnection({
       host: secret.host,
       user: secret.username,
       password: secret.password,
       port: secret.port || 3306,
-      multipleStatements: true, // 允許執行多條語句
+      multipleStatements: true, 
     });
 
-    // 創建資料庫（如果尚不存在）
+    // create database if not exists
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
-    console.log(`資料庫 '${dbName}' 已創建或已存在。`);
+    console.log(`Database '${dbName}' created successfully or exists.`);
 
-    // 關閉無資料庫的連接
     await connection.end();
   } catch (err) {
-    console.log(`資料庫 '${dbName}'`);
-    console.error("創建資料庫時出錯:", err);
-    throw err; // 重新拋出錯誤以阻止應用啟動
+    console.error("Create database unsuccessfully:", err);
+    throw err; 
   }
 };
 
-/**
- * 函數：初始化連接池
- */
+
 const initializePool = async (dbName) => {
   const secret = await getAwsDBSecret();
   try {
@@ -67,26 +58,23 @@ const initializePool = async (dbName) => {
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
-      connectTimeout: 10000, // 10 秒
+      connectTimeout: 10000, 
     });
     return pool;
   } catch (err) {
-    console.error("初始化連接池時出錯:", err);
+    console.error("initialize error:", err);
     throw err;
   }
 };
 
-/**
- * 函數：初始化資料庫和連接池
- */
 const initializeDatabaseAndPool = async () => {
-  // 先取得 AWS Secret 中的 DB_NAME
+  // get database name from AWS Secrets Manager
   const secret = await getAwsSecret();
   const dbName = secret.DB_NAME;
 
-  // 確保 dbName 獲取成功後再繼續創建資料庫和初始化連接池
-  await createDatabase(dbName); // 創建資料庫
-  const pool = await initializePool(dbName); // 初始化連接池
+  // ensure database is created
+  await createDatabase(dbName); // create database if not exists
+  const pool = await initializePool(dbName); // initialize database connection pool
   return pool;
 };
 

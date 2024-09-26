@@ -57,7 +57,7 @@ const Header = ({ showUploadButton = true, handleLogout }) => {
             {showUploadButton ? (
               <button 
                 style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '1rem' }} 
-                onClick={() => navigate('/')} 
+                onClick={() => navigate('/upload')} 
               >
                 <UploadIcon />
                 Upload

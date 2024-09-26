@@ -3,12 +3,11 @@ const jwksClient = require("jwks-rsa");
 require('dotenv').config();
 const { getAwsSecret } = require('./public/awsSecret.js');
 
-// 配置 JWKS 客戶端
 let client;
 let jwksUri;
 let secret;
 
-// 根據 JWT 的 kid 獲取對應的公鑰
+// get the key for the JWT
 function getKey(header, callback) {
     client.getSigningKey(header.kid, function(err, key) {
         if (err) {
@@ -20,15 +19,15 @@ function getKey(header, callback) {
     });
 }
 
-// 初始化 AWS Cognito 配置信息，確保在之後再使用該配置信息進行 JWT 驗證
+// initialize the auth configuration
 const initializeAuth = async () => {
     try {
-        const secret = await getAwsSecret(); // 獲取 AWS Secret
+        const secret = await getAwsSecret(); //get the secret from AWS Secrets Manager
 
         const userPoolId = secret.COGNITO_USER_POOL_ID;
         const region = secret.AWS_REGION;
 
-        // 配置 JWKS Uri 和客戶端
+        // Initialize the JWKS client
         jwksUri = `https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`;
         client = jwksClient({
             jwksUri: jwksUri
@@ -41,9 +40,9 @@ const initializeAuth = async () => {
     }
 };
 
-// 驗證 ID Token 的中介軟件（通常用於前端應用）
+// authenticate the cookie
 const authenticateCookie = async (req, res, next) => {
-    const token = req.cookies.token; // 假設您將 ID Token 存儲在 token Cookie 中
+    const token = req.cookies.token; 
     const secret = await getAwsSecret(); 
 
     if (!token) {
@@ -51,7 +50,6 @@ const authenticateCookie = async (req, res, next) => {
         return res.redirect("/login");
     }
 
-    // 等待 Cognito 配置信息加載
     await initializeAuth();
 
     jwt.verify(token, getKey, {
@@ -72,17 +70,16 @@ const authenticateCookie = async (req, res, next) => {
     });
 };
 
-// 驗證 Access Token 的中介軟件（通常用於 API 調用）
+// authenticate the token
 const authenticateToken = async (req, res, next) => {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
 
     if (!token) {
         console.log("JSON web token missing.");
-        return res.sendStatus(401); // 未授權
+        return res.sendStatus(401); 
     }
 
-    // 等待 Cognito 配置信息加載
     await initializeAuth();
 
     jwt.verify(token, getKey, {
@@ -91,14 +88,13 @@ const authenticateToken = async (req, res, next) => {
     }, (err, decoded) => {
         if (err) {
             console.error("JWT verification failed:", err);
-            return res.sendStatus(403); // 禁止訪問
+            return res.sendStatus(403);
         }
 
-        req.user = decoded; // 將用戶信息附加到請求對象
+        req.user = decoded; 
         console.log(`authToken verified for user: ${decoded.username} at URL ${req.url}`);
         next();
     });
 };
 
-// 將初始化和中間件導出
 module.exports = { initializeAuth, authenticateCookie, authenticateToken };

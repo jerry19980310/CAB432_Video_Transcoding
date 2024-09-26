@@ -227,6 +227,7 @@ function VideoList() {
                   <th>File Name</th>
                   <th>File Size</th>
                   <th>File Type</th>
+                  <th>User Name</th>
                   <th>Upload Date</th>
                   <th>Actions</th>
                 </tr>
@@ -237,6 +238,7 @@ function VideoList() {
                     <td className="video-list-file-name">{video.fileName}</td>
                     <td>{video.fileSize} bytes</td>
                     <td>{video.fileExtension}</td>
+                    <td>{video.userName}</td>
                     <td>{new Date(video.uploadTime).toLocaleString()}</td>
                     <td>
                       <div className="video-list-actions">

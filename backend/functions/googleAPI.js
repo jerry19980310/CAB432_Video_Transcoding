@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const { getAwsSecret }= require('../public/awsSecret.js');
+const { getAwsParameterGoogleApiVideos, getAwsParameterGoogleApiSearch } = require("../public/awsParameter");
 
 
 // Function to generate tags from a filename
@@ -22,12 +23,14 @@ async function searchYouTube(query, maxResults = 25) {
     const secret = await getAwsSecret();
     const API_KEY = secret.API_KEY_GOOGLE;
     const queryTags = generateTags(query);
+    const awsSearchUrl = await getAwsParameterGoogleApiSearch();
+    const awsVideosUrl = await getAwsParameterGoogleApiVideos();
 
     const queryString = queryTags.join(' ');
 
     console.log('Searching YouTube for:', queryString);
 
-    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(queryString)}&maxResults=${maxResults}&key=${API_KEY}`;
+    const searchUrl = `${awsSearchUrl}?part=snippet&q=${encodeURIComponent(queryString)}&maxResults=${maxResults}&key=${API_KEY}`;
 
     try {
         const searchResponse = await fetch(searchUrl);
@@ -42,7 +45,7 @@ async function searchYouTube(query, maxResults = 25) {
         console.log('Found', videoIds);
 
         // fecch statistics for each video
-        const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds.join(',')}&key=${API_KEY}`;
+        const statsUrl = `${awsVideosUrl}?part=statistics&id=${videoIds.join(',')}&key=${API_KEY}`;
         const statsResponse = await fetch(statsUrl);
         if (!statsResponse.ok) {
             throw new Error(`YouTube API error: ${statsResponse.statusText}`);

@@ -2,6 +2,28 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import GoogleIcon from '../icons/GoogleIcon'; 
 import '../styles/Login.css';
+import { signInWithRedirect, signOut, getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
+import { Hub } from "aws-amplify/utils";
+import { Amplify } from 'aws-amplify';
+
+Amplify.configure({
+  Auth: {
+    Cognito: {
+      userPoolClientId: '3bgk2gkfv98fffljc569sbjhqg',
+      userPoolId: 'ap-southeast-2_4b5hIv0zn',
+      loginWith: { // Optional
+        oauth: {
+          domain: 'n11428911-a2.auth.ap-southeast-2.amazoncognito.com',
+          scopes: ['openid','email','profile'],
+          redirectSignIn: ['http://localhost:3000/upload/'],
+          redirectSignOut: ['http://localhost:3000/'],
+          responseType: 'code',
+        },
+        username: 'true',
+      }
+    }
+  }
+});
 
 const Login = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -35,6 +57,7 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     // Implement Google Login logic here
+    window.location.href = 'https://n11428911-a2.auth.ap-southeast-2.amazoncognito.com/oauth2/authorize?client_id=3bgk2gkfv98fffljc569sbjhqg&response_type=token&scope=email+openid+profile&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fupload';
     console.log('Google Login clicked');
     // You would typically redirect to a Google OAuth URL or use a library like react-google-login
   };
