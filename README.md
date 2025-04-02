@@ -40,32 +40,38 @@ This project is a **Transcoding Web Application** that allows users to upload, t
 
 ### Amazon CloudFront
 - **Edge Caching**: Caches static assets (JS, CSS, HTML) for faster delivery.
-- ![CloudFront1](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/Cloudfront1.png)
-- ![CloudFront2](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/Cloudfront2.png)
+![CloudFront1](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/Cloudfront1.png)
+![CloudFront2](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/Cloudfront2.png)
 
 ### AWS Cognito
 - **Authentication and Authorization**: Manages user signup, signin, and access control.
-- ![Cognito](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/Cognito.png)
+![Cognito](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/Cognito.png)
 
 ### Amazon ECS (Elastic Container Service)
 - **API Service**: Hosts Docker containers running the backend API.
 - **Scanning Service**: Runs containers with ClamAV to scan videos.
 - **Transcoding Service**: Handles video transcoding with FFmpeg.
+![ECS](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/ECS.png)
 
 ### AWS Lambda
 - **Event Handling**: Triggered by S3 events to initiate scanning and transcoding.
 - **Orchestration**: Coordinates processes between S3, scanning, and transcoding services.
+![Lambda](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/Lambda.png)
+
 
 ### Amazon SQS (Simple Queue Service)
 - **Scanning Queue**: Receives messages for virus scanning tasks.
 - **Transcoding Queue**: Receives messages for transcoding tasks.
+![SQS](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/SQS.png)
 
 ### Application Load Balancer (ALB)
 - **Traffic Distribution**: Routes incoming requests to the ECS services.
 - **Security**: Works with AWS Certificate Manager for SSL termination.
+![ALB](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/ALB.png)
 
 ### AWS Certificate Manager (ACM)
 - **SSL/TLS Management**: Manages certificates for secure communication.
+![ACM](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/ACM.png)
 
 ### Amazon RDS (Relational Database Service)
 - **Database Management**: Stores user information, video metadata, and statuses.
@@ -73,9 +79,12 @@ This project is a **Transcoding Web Application** that allows users to upload, t
 ### AWS Secrets Manager and Systems Manager Parameter Store
 - **Secret Storage**: Securely stores sensitive data like API keys and credentials.
 - **Configuration Management**: Manages application configurations.
+![Secrets](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/Secrets.png)
+![Parameter](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/Parameter.png)
 
 ### Auto Scaling Groups
 - **Scalability**: Adjusts ECS task count based on load.
+![Auto Scaling](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/AutoScaling%20.png)
 
 ---
 
