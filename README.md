@@ -1,4 +1,4 @@
-# Transcoding Web Application - deploy via AWS
+# Transcoding Web Application - Deployed via AWS
 
 ## Overview
 This project is a **Transcoding Web Application** that allows users to upload, transcode, and manage video files. The application also suggests related YouTube videos based on the content of the uploaded videos.
