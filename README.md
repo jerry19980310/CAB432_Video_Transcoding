@@ -40,9 +40,12 @@ This project is a **Transcoding Web Application** that allows users to upload, t
 
 ### Amazon CloudFront
 - **Edge Caching**: Caches static assets (JS, CSS, HTML) for faster delivery.
+- ![CloudFront1](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/Cloudfront1.png)
+- ![CloudFront2](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/Cloudfront2.png)
 
 ### AWS Cognito
 - **Authentication and Authorization**: Manages user signup, signin, and access control.
+- ![Cognito](https://raw.githubusercontent.com/jerry19980310/Project-Demo/refs/heads/main/Transcoding/Cognito.png)
 
 ### Amazon ECS (Elastic Container Service)
 - **API Service**: Hosts Docker containers running the backend API.
